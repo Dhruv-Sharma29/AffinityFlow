@@ -149,3 +149,11 @@ export const IconText = ({ size = 20, color = 'currentColor' }: IconProps) => (
     <line x1="12" y1="4" x2="12" y2="20"/>
   </svg>
 );
+
+export const IconUnlink = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18.84 12.25l1.72-1.71a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+    <path d="M5.16 11.75l-1.72 1.71a5 5 0 007.07 7.07l1.72-1.71"/>
+    <line x1="2" y1="2" x2="22" y2="22"/>
+  </svg>
+);

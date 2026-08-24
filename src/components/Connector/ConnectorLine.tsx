@@ -65,6 +65,18 @@ export const ConnectorLine: React.FC<ConnectorLineProps> = ({
         strokeWidth={16}
         onClick={() => onSelect(connector.id)}
         onTap={() => onSelect(connector.id)}
+        onContextMenu={(e) => {
+          e.evt.preventDefault();
+          window.dispatchEvent(
+            new CustomEvent('canvas-context-menu', {
+              detail: {
+                clientX: e.evt.clientX,
+                clientY: e.evt.clientY,
+                targetId: connector.id,
+              },
+            })
+          );
+        }}
         hitStrokeWidth={20}
       />
 

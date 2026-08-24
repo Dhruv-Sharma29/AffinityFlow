@@ -37,6 +37,7 @@ interface BoardStore {
   // Connector actions
   addConnector: (fromCardId: string, toCardId: string, color?: ConnectorColor, style?: ConnectorStyle) => string;
   deleteConnector: (id: string) => void;
+  unlinkCard: (cardId: string) => void;
 
   // Cluster actions
   addCluster: (x: number, y: number) => string;
@@ -199,6 +200,15 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     set(state => ({
       connectors: state.connectors.filter(c => c.id !== id),
       selectedIds: state.selectedIds.filter(s => s !== id),
+    }));
+  },
+
+  unlinkCard: (cardId) => {
+    get().pushHistory();
+    set(state => ({
+      connectors: state.connectors.filter(
+        c => c.fromCardId !== cardId && c.toCardId !== cardId
+      ),
     }));
   },
 

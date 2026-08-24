@@ -4,6 +4,7 @@ import { CanvasToolbar } from './components/Canvas/CanvasToolbar';
 import { CardEditor } from './components/Card/CardEditor';
 import { ExportModal } from './components/Export/ExportModal';
 import { ContextMenu } from './components/ContextMenu/ContextMenu';
+import { FloatingFormatBar } from './components/Card/FloatingFormatBar';
 import { useBoardStore } from './store/boardStore';
 import type { Tool } from './types/board';
 import './App.css';
@@ -190,6 +191,9 @@ function App() {
 
       {/* Card Editor */}
       <CardEditor />
+
+      {/* Floating Format Bar for selected card */}
+      <FloatingFormatBar />
 
       {/* Context Menu */}
       <ContextMenu />
