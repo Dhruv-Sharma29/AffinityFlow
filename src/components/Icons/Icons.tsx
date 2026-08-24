@@ -9,8 +9,6 @@ interface IconProps {
   className?: string;
 }
 
-const defaultProps: IconProps = { size: 20, color: 'currentColor' };
-
 export const IconCursor = ({ size = 20, color = 'currentColor' }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 4l7.07 17 2.51-7.39L21 11.07z"/>

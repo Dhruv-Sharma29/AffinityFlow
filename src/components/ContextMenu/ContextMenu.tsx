@@ -29,7 +29,7 @@ export const ContextMenu: React.FC = () => {
 
   const {
     cards, connectors,
-    selectedIds, setSelectedIds,
+    setSelectedIds,
     setEditingCardId,
     deleteCard, deleteConnector,
     updateCard, bringToFront,
