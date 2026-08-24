@@ -1,0 +1,111 @@
+/* ─── Context Menu ───────────────────────────────────────────────── */
+.context-menu {
+  position: fixed;
+  z-index: 500;
+  min-width: 180px;
+  padding: 5px;
+
+  background: rgba(30, 24, 20, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.2);
+
+  animation: contextAppear 0.12s ease;
+}
+
+@keyframes contextAppear {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Menu Item ──────────────────────────────────────────────────── */
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  text-align: left;
+}
+
+.context-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.context-menu-item.danger:hover {
+  background: rgba(192, 57, 43, 0.2);
+}
+
+.context-menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(200, 190, 175, 0.6);
+  flex-shrink: 0;
+}
+
+.context-menu-item:hover .context-menu-icon {
+  color: #f4ecd8;
+}
+
+.context-menu-item.danger .context-menu-icon {
+  color: rgba(192, 57, 43, 0.7);
+}
+
+.context-menu-item.danger:hover .context-menu-icon {
+  color: #e74c3c;
+}
+
+.context-menu-label {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(244, 236, 216, 0.85);
+}
+
+.context-menu-item.danger .context-menu-label {
+  color: rgba(231, 76, 60, 0.85);
+}
+
+/* ─── Divider ────────────────────────────────────────────────────── */
+.context-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 4px 8px;
+}
+
+/* ─── Color Picker ───────────────────────────────────────────────── */
+.context-menu-colors {
+  display: flex;
+  gap: 5px;
+  padding: 6px 10px 4px;
+}
+
+.context-menu-color {
+  width: 24px;
+  height: 24px;
+  border: 2px solid;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  padding: 0;
+}
+
+.context-menu-color:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.context-menu-color.active {
+  box-shadow: 0 0 0 2px #c0392b, 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: scale(1.15);
+}

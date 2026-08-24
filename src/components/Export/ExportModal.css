@@ -1,0 +1,405 @@
+/* ─── Export Overlay ─────────────────────────────────────────────── */
+.export-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 8, 0.55);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: exportFadeIn 0.2s ease;
+}
+
+@keyframes exportFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Export Modal ───────────────────────────────────────────────── */
+.export-modal {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #f4ecd8;
+  border: 1px solid #e0d3ae;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 4px 16px rgba(0, 0, 0, 0.2);
+  padding: 28px 28px 24px;
+  animation: exportSlideUp 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes exportSlideUp {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Tape ───────────────────────────────────────────────────────── */
+.export-tape {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1.5deg);
+  width: 90px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* ─── Header ─────────────────────────────────────────────────────── */
+.export-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.export-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-header-icon {
+  font-size: 22px;
+}
+
+.export-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #241d18;
+  margin: 0;
+}
+
+.export-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e0d3ae;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  font-size: 16px;
+  color: #5a4f42;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.export-close:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: #c0392b;
+  border-color: #c0392b;
+}
+
+/* ─── Info Bar ───────────────────────────────────────────────────── */
+.export-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #8a7d6f;
+}
+
+.export-info-dot {
+  color: #c8bda8;
+}
+
+/* ─── Section ────────────────────────────────────────────────────── */
+.export-section {
+  margin-bottom: 18px;
+}
+
+.export-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a7d6f;
+  margin-bottom: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── Format Grid ────────────────────────────────────────────────── */
+.export-format-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.export-format-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1.5px solid #e0d3ae;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.export-format-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: #c8bda8;
+}
+
+.export-format-btn.active {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: #c0392b;
+  box-shadow: 0 0 0 1px #c0392b;
+}
+
+.export-format-icon {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.export-format-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #241d18;
+  font-family: 'Inter', sans-serif;
+}
+
+.export-format-desc {
+  font-size: 10px;
+  color: #8a7d6f;
+  margin-top: 2px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── Input ──────────────────────────────────────────────────────── */
+.export-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e0d3ae;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  color: #241d18;
+  transition: border-color 0.15s ease;
+}
+
+.export-input:focus {
+  outline: none;
+  border-color: #c0392b;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.export-input::placeholder {
+  color: #b0a898;
+  font-weight: 400;
+}
+
+/* ─── Quality Row ────────────────────────────────────────────────── */
+.export-quality-row {
+  display: flex;
+  gap: 8px;
+}
+
+.export-quality-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: 1.5px solid #e0d3ae;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.export-quality-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.export-quality-btn.active {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: #c0392b;
+  box-shadow: 0 0 0 1px #c0392b;
+}
+
+.export-quality-label {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: #241d18;
+  font-family: 'Inter', sans-serif;
+}
+
+.export-quality-desc {
+  display: block;
+  font-size: 10px;
+  color: #8a7d6f;
+  margin-top: 2px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── Background Row ─────────────────────────────────────────────── */
+.export-bg-row {
+  display: flex;
+  gap: 8px;
+}
+
+.export-bg-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 1.5px solid #e0d3ae;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex: 1;
+}
+
+.export-bg-btn:hover {
+  border-color: #c8bda8;
+}
+
+.export-bg-btn.active {
+  border-color: #c0392b;
+  box-shadow: 0 0 0 1px #c0392b;
+}
+
+.export-bg-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.export-bg-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #8a7d6f;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Checkboxes ─────────────────────────────────────────────────── */
+.export-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.export-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #2b2420;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}
+
+.export-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #c0392b;
+  cursor: pointer;
+}
+
+/* ─── Error ──────────────────────────────────────────────────────── */
+.export-error {
+  padding: 10px 14px;
+  background: #fce4ec;
+  border: 1px solid #f8bbd0;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #c0392b;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* ─── Actions ────────────────────────────────────────────────────── */
+.export-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.export-cancel-btn {
+  flex: 0 0 auto;
+  padding: 11px 20px;
+  border: 1.5px solid #e0d3ae;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a4f42;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.export-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: #c8bda8;
+}
+
+.export-submit-btn {
+  flex: 1;
+  padding: 11px 20px;
+  border: 1.5px solid #a3312b;
+  border-radius: 6px;
+  background: #c0392b;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f4ecd8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.export-submit-btn:hover {
+  background: #e74c3c;
+}
+
+.export-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-submit-btn kbd {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Inter', monospace;
+}
+
+/* ─── Spinner ────────────────────────────────────────────────────── */
+.export-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(244, 236, 216, 0.3);
+  border-top-color: #f4ecd8;
+  border-radius: 50%;
+  animation: exportSpin 0.6s linear infinite;
+}
+
+@keyframes exportSpin {
+  to { transform: rotate(360deg); }
+}

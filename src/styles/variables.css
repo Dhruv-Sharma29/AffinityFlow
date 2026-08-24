@@ -1,0 +1,61 @@
+/* ─── Design Tokens ─────────────────────────────────────────────────── */
+:root {
+  /* Cork board */
+  --cork-1: #b8804f;
+  --cork-2: #a06f42;
+  --cork-dark: #8a5e38;
+
+  /* Card defaults */
+  --card: #f4ecd8;
+  --card-edge: #e0d3ae;
+
+  /* Ink / text */
+  --ink: #2b2420;
+  --ink-soft: #5a4f42;
+  --ink-muted: #8a7d6f;
+
+  /* String / connector colors */
+  --string-loop: #a3312b;
+  --string-cross: #2f4a63;
+
+  /* Pin colors */
+  --pin-red: #c0392b;
+  --pin-blue: #2f4a63;
+  --pin-green: #27ae60;
+
+  /* Accent */
+  --accent: #c0392b;
+  --accent-hover: #e74c3c;
+
+  /* Shadows */
+  --paper-shadow: rgba(20, 14, 8, 0.35);
+  --shadow-sm: 0 2px 6px rgba(20, 14, 8, 0.18);
+  --shadow-md: 2px 4px 10px rgba(20, 14, 8, 0.35);
+  --shadow-lg: 3px 8px 18px rgba(20, 14, 8, 0.42);
+  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.5);
+
+  /* Toolbar */
+  --toolbar-bg: rgba(36, 29, 24, 0.82);
+  --toolbar-border: rgba(255, 255, 255, 0.08);
+  --toolbar-text: #f4ecd8;
+  --toolbar-hover: rgba(255, 255, 255, 0.12);
+  --toolbar-active: rgba(192, 57, 43, 0.7);
+
+  /* Z-index layers */
+  --z-background: 0;
+  --z-connectors: 10;
+  --z-cards: 20;
+  --z-dragging: 100;
+  --z-toolbar: 200;
+  --z-editor: 300;
+  --z-overlay: 400;
+
+  /* Sizing */
+  --card-width: 220px;
+  --card-min-height: 120px;
+  --toolbar-width: 52px;
+
+  /* Timing */
+  --ease-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}

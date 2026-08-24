@@ -1,0 +1,166 @@
+/* ─── Canvas Toolbar ─────────────────────────────────────────────── */
+.canvas-toolbar {
+  position: fixed;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 200;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px;
+
+  background: rgba(30, 24, 20, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    0 1px 4px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  animation: toolbarAppear 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes toolbarAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* ─── Toolbar Section ───────────────────────────────────────────── */
+.toolbar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+/* ─── Toolbar Button ────────────────────────────────────────────── */
+.toolbar-btn {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(200, 190, 175, 0.75);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+  padding: 0;
+}
+
+.toolbar-btn svg {
+  flex-shrink: 0;
+}
+
+.toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f4ecd8;
+}
+
+.toolbar-btn.active {
+  background: rgba(192, 57, 43, 0.65);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(192, 57, 43, 0.25);
+}
+
+.toolbar-btn.disabled {
+  opacity: 0.25;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ─── Tooltip ───────────────────────────────────────────────────── */
+.toolbar-tooltip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+
+  background: rgba(30, 24, 20, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: #f4ecd8;
+  pointer-events: none;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.toolbar-btn:hover .toolbar-tooltip {
+  opacity: 1;
+}
+
+.toolbar-tooltip kbd {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: 'Inter', monospace;
+  color: rgba(200, 190, 175, 0.6);
+}
+
+/* ─── Zoom Display ──────────────────────────────────────────────── */
+.toolbar-zoom-display {
+  width: 36px;
+}
+
+.toolbar-zoom-text {
+  font-size: 9px;
+  font-weight: 600;
+  font-family: 'Inter', monospace;
+  letter-spacing: -0.03em;
+  color: rgba(200, 190, 175, 0.5);
+}
+
+.toolbar-zoom-display:hover .toolbar-zoom-text {
+  color: #f4ecd8;
+}
+
+/* ─── Divider ───────────────────────────────────────────────────── */
+.toolbar-divider {
+  width: 20px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 3px 0;
+}
+
+/* ─── Card Count Badge ──────────────────────────────────────────── */
+.toolbar-badge {
+  margin-top: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(192, 57, 43, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #f4ecd8;
+  font-family: 'Inter', sans-serif;
+}
