@@ -2,9 +2,14 @@ import { useEffect, useCallback, useState } from 'react';
 import { InfiniteCanvas } from './components/Canvas/InfiniteCanvas';
 import { CanvasToolbar } from './components/Canvas/CanvasToolbar';
 import { CardEditor } from './components/Card/CardEditor';
+import { ShapeTextEditor } from './components/Shape/ShapeTextEditor';
+import { ConnectorLabelEditor } from './components/Connector/ConnectorLabelEditor';
 import { ExportModal } from './components/Export/ExportModal';
+import { TemplateModal } from './components/Template/TemplateModal';
 import { ContextMenu } from './components/ContextMenu/ContextMenu';
 import { FloatingFormatBar } from './components/Card/FloatingFormatBar';
+import { ShapeFormatBar } from './components/Shape/ShapeFormatBar';
+import { Minimap } from './components/Minimap/Minimap';
 import { useBoardStore } from './store/boardStore';
 import type { Tool } from './types/board';
 import './App.css';
@@ -13,6 +18,7 @@ import './App.css';
 const TOOL_SHORTCUTS: Record<string, Tool> = {
   v: 'select',
   n: 'card',
+  s: 'shape',
   c: 'connector',
   g: 'cluster',
   h: 'hand',
@@ -25,6 +31,8 @@ function App() {
     undo,
     redo,
     editingCardId,
+    editingShapeId,
+    editingConnectorId,
     selectedIds,
     activeTool,
     connectingFromId,
@@ -32,12 +40,13 @@ function App() {
   } = useBoardStore();
 
   const [exportOpen, setExportOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Don't capture shortcuts when editing a card or export is open
-      if (editingCardId || exportOpen) return;
+      // Don't capture shortcuts when editing a card/shape/connector or export/templates is open
+      if (editingCardId || editingShapeId || editingConnectorId || exportOpen || templatesOpen) return;
 
       // Don't capture when typing in an input/textarea
       const tag = (e.target as HTMLElement).tagName;
@@ -120,18 +129,18 @@ function App() {
         return;
       }
     },
-    [editingCardId, selectedIds, deleteSelected, undo, redo, setActiveTool, connectingFromId, setConnectingFromId, exportOpen]
+    [editingCardId, editingShapeId, selectedIds, deleteSelected, undo, redo, setActiveTool, connectingFromId, setConnectingFromId, exportOpen]
   );
 
   const handleKeyUp = useCallback(
     (e: KeyboardEvent) => {
-      if (editingCardId) return;
+      if (editingCardId || editingShapeId) return;
       // Release space → back to select
       if (e.key === ' ' && activeTool === 'hand') {
         setActiveTool('select');
       }
     },
-    [activeTool, setActiveTool, editingCardId]
+    [activeTool, setActiveTool, editingCardId, editingShapeId]
   );
 
   useEffect(() => {
@@ -159,21 +168,24 @@ function App() {
       {/* Hint bar (contextual) */}
       <div className="app-hint-bar">
         {activeTool === 'select' && !selectedIds.length && (
-          <span><kbd>Double-click</kbd> to add a card · Scroll to zoom · <kbd>N</kbd> new card · <kbd>C</kbd> connect</span>
+          <span><kbd>Double-click</kbd> to add a card · Scroll to zoom · <kbd>N</kbd> new card · <kbd>S</kbd> shape · <kbd>C</kbd> connect</span>
         )}
         {activeTool === 'select' && selectedIds.length > 0 && (
           <span>
-            {selectedIds.length} selected · <kbd>Delete</kbd> remove · <kbd>Shift</kbd>+click multi-select · Right-click for options
+            {selectedIds.length} selected · <kbd>Delete</kbd> remove · <kbd>Shift</kbd>+click multi-select · Drag handles to resize · Right-click for options
           </span>
         )}
         {activeTool === 'card' && (
           <span>Click to place a card · <kbd>Esc</kbd> cancel</span>
         )}
+        {activeTool === 'shape' && (
+          <span>Click to place or drag to size shape · <kbd>Esc</kbd> cancel</span>
+        )}
         {activeTool === 'connector' && !connectingFromId && (
-          <span>Click a card to start connection · <kbd>Esc</kbd> cancel</span>
+          <span>Click a card or shape to start connection · <kbd>Esc</kbd> cancel</span>
         )}
         {activeTool === 'connector' && connectingFromId && (
-          <span>Click another card to connect · <kbd>Esc</kbd> cancel</span>
+          <span>Click another card or shape to connect · <kbd>Esc</kbd> cancel</span>
         )}
         {activeTool === 'cluster' && (
           <span>Click to place a group · <kbd>Esc</kbd> cancel</span>
@@ -187,21 +199,40 @@ function App() {
       <InfiniteCanvas />
 
       {/* Toolbar */}
-      <CanvasToolbar onOpenExport={() => setExportOpen(true)} />
+      <CanvasToolbar
+        onOpenExport={() => setExportOpen(true)}
+        onOpenTemplates={() => setTemplatesOpen(true)}
+      />
 
       {/* Card Editor */}
       <CardEditor />
 
+      {/* Shape Text Editor */}
+      <ShapeTextEditor />
+
+      {/* Connector Label Editor */}
+      <ConnectorLabelEditor />
+
       {/* Floating Format Bar for selected card */}
       <FloatingFormatBar />
+
+      {/* Floating Format Bar for selected shape */}
+      <ShapeFormatBar />
 
       {/* Context Menu */}
       <ContextMenu />
 
+      {/* Minimap radar overview */}
+      <Minimap />
+
       {/* Export Modal */}
       <ExportModal isOpen={exportOpen} onClose={() => setExportOpen(false)} />
+
+      {/* Sensemaking Templates Modal */}
+      <TemplateModal isOpen={templatesOpen} onClose={() => setTemplatesOpen(false)} />
     </div>
   );
 }
 
 export default App;
+

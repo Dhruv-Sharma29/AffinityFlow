@@ -1,5 +1,5 @@
 import type Konva from 'konva';
-import type { Card, Cluster } from '../types/board';
+import type { Card, Shape, Cluster } from '../types/board';
 
 // ─── Types ──────────────────────────────────────────────────────────
 export type ExportFormat = 'pdf' | 'png' | 'svg' | 'json';
@@ -23,20 +23,22 @@ const QUALITY_MAP: Record<ExportQuality, number> = {
 
 // ─── Bounding Box Calculation ───────────────────────────────────────
 /**
- * Computes the bounding box that contains all cards and clusters,
+ * Computes the bounding box that contains all cards, shapes, and clusters,
  * so export captures the full board regardless of viewport.
  */
 function computeContentBounds(
   cards: Card[],
-  clusters: Cluster[],
-  padding: number
+  shapes: Shape[] = [],
+  clusters: Cluster[] = [],
+  padding: number = 60
 ): { x: number; y: number; width: number; height: number } {
-  if (cards.length === 0 && clusters.length === 0) {
+  if (cards.length === 0 && shapes.length === 0 && clusters.length === 0) {
     return { x: 0, y: 0, width: 800, height: 600 };
   }
 
   const items = [
     ...cards.map(c => ({ x: c.x, y: c.y - 20, w: c.width, h: c.height + 20 })),
+    ...shapes.map(s => ({ x: s.x, y: s.y, w: s.width, h: s.height })),
     ...clusters.map(c => ({ x: c.x, y: c.y - 30, w: c.width, h: c.height + 30 })),
   ];
 
@@ -61,6 +63,7 @@ function computeContentBounds(
 function captureFullBoard(
   stage: Konva.Stage,
   cards: Card[],
+  shapes: Shape[],
   clusters: Cluster[],
   options: ExportOptions
 ): string {
@@ -72,7 +75,7 @@ function captureFullBoard(
   const origWidth = stage.width();
   const origHeight = stage.height();
 
-  const bounds = computeContentBounds(cards, clusters, options.padding);
+  const bounds = computeContentBounds(cards, shapes, clusters, options.padding);
   const pixelRatio = QUALITY_MAP[options.quality];
 
   // Temporarily adjust stage to frame the entire board
@@ -105,13 +108,14 @@ function captureFullBoard(
 export async function exportToPdf(
   stage: Konva.Stage,
   cards: Card[],
+  shapes: Shape[],
   clusters: Cluster[],
   options: ExportOptions
 ): Promise<void> {
   try {
     const { jsPDF } = await import('jspdf');
-    const dataUrl = captureFullBoard(stage, cards, clusters, options);
-    const bounds = computeContentBounds(cards, clusters, options.padding);
+    const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
+    const bounds = computeContentBounds(cards, shapes, clusters, options.padding);
 
     // Determine page size — scale content to fit A4-ish proportions if very large
     const maxPageDim = 3000;
@@ -157,10 +161,11 @@ export async function exportToPdf(
         pdf.text(`Exported ${new Date().toLocaleString()}`, 24, 46);
       }
 
-      // Card count
+      // Total items count
       pdf.setFontSize(10);
       pdf.setTextColor('#8a7d6f');
-      const countText = `${cards.length} card${cards.length !== 1 ? 's' : ''}`;
+      const totalItems = cards.length + shapes.length;
+      const countText = `${totalItems} item${totalItems !== 1 ? 's' : ''}`;
       pdf.text(countText, pageW - 24 - pdf.getTextWidth(countText), 28);
     }
 
@@ -180,10 +185,11 @@ export async function exportToPdf(
 export function exportToPng(
   stage: Konva.Stage,
   cards: Card[],
+  shapes: Shape[],
   clusters: Cluster[],
   options: ExportOptions
 ): void {
-  const dataUrl = captureFullBoard(stage, cards, clusters, options);
+  const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
   const slug = (options.title || 'affinity-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
   const a = document.createElement('a');
@@ -198,13 +204,12 @@ export function exportToPng(
 export function exportToSvg(
   stage: Konva.Stage,
   cards: Card[],
+  shapes: Shape[],
   clusters: Cluster[],
   options: ExportOptions
 ): void {
-  // Konva doesn't natively export SVG, so we embed the PNG in an SVG wrapper
-  // which gives us vector-like quality at the edges + raster content
-  const dataUrl = captureFullBoard(stage, cards, clusters, options);
-  const bounds = computeContentBounds(cards, clusters, options.padding);
+  const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
+  const bounds = computeContentBounds(cards, shapes, clusters, options.padding);
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" 
@@ -232,6 +237,7 @@ export function exportToSvg(
 // ─── Export to JSON ─────────────────────────────────────────────────
 export function exportToJson(
   cards: Card[],
+  shapes: Shape[],
   connectors: any[],
   clusters: Cluster[],
   options: ExportOptions
@@ -240,6 +246,7 @@ export function exportToJson(
     title: options.title,
     exportedAt: new Date().toISOString(),
     cards,
+    shapes,
     connectors,
     clusters,
   };
@@ -256,3 +263,4 @@ export function exportToJson(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+

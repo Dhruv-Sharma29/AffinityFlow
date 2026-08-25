@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useBoardStore } from '../../store/boardStore';
-import { CARD_COLORS } from '../../types/board';
-import type { CardColor } from '../../types/board';
+import { CARD_COLORS, SHAPE_COLORS } from '../../types/board';
+import type { CardColor, ShapeColor, ShapeType } from '../../types/board';
 import {
   IconEdit, IconTrash, IconCopy, IconLink, IconUnlink,
-  IconPalette, IconBringToFront,
+  IconPalette, IconBringToFront, IconShape,
 } from '../Icons/Icons';
+import { getAllShapeDefinitions } from '../Shape/shapeRegistry';
 import './ContextMenu.css';
 
 interface MenuPosition {
@@ -26,20 +27,22 @@ export const ContextMenu: React.FC = () => {
   const [position, setPosition] = useState<MenuPosition>({ x: 0, y: 0 });
   const [targetId, setTargetId] = useState<string | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showShapeTypePicker, setShowShapeTypePicker] = useState(false);
 
   const {
-    cards, connectors,
+    cards, shapes, connectors,
     setSelectedIds,
-    setEditingCardId,
-    deleteCard, deleteConnector, unlinkCard,
-    updateCard, bringToFront,
-    addCard,
+    setEditingCardId, setEditingShapeId,
+    deleteCard, deleteShape, deleteConnector, unlinkCard,
+    updateCard, updateShape, bringToFront, bringShapeToFront,
+    addCard, addShape,
     setActiveTool, setConnectingFromId,
   } = useBoardStore();
 
   const close = useCallback(() => {
     setIsOpen(false);
     setShowColorPicker(false);
+    setShowShapeTypePicker(false);
     setTargetId(null);
   }, []);
 
@@ -54,12 +57,12 @@ export const ContextMenu: React.FC = () => {
         setSelectedIds([detail.targetId]);
         setIsOpen(true);
         setShowColorPicker(false);
+        setShowShapeTypePicker(false);
       }
     };
 
     // Also listen for native right-click to close
     const handleNativeContext = (e: MouseEvent) => {
-      // If clicking outside the menu, close it
       const target = e.target as HTMLElement;
       if (!target.closest('.context-menu')) {
         close();
@@ -87,6 +90,7 @@ export const ContextMenu: React.FC = () => {
   if (!isOpen || !targetId) return null;
 
   const targetCard = cards.find(c => c.id === targetId);
+  const targetShape = shapes.find(s => s.id === targetId);
   const targetConnector = connectors.find(c => c.id === targetId);
 
   // Build menu items based on target type
@@ -153,8 +157,114 @@ export const ContextMenu: React.FC = () => {
         danger: true,
       },
     );
+  } else if (targetShape) {
+    menuItems.push(
+      {
+        label: 'Edit Label',
+        icon: <IconEdit size={15} />,
+        action: () => { setEditingShapeId(targetId); close(); },
+      },
+      {
+        label: 'Change Shape Type',
+        icon: <IconShape size={15} />,
+        action: () => {
+          setShowShapeTypePicker(!showShapeTypePicker);
+          setShowColorPicker(false);
+        },
+      },
+      {
+        label: 'Change Color',
+        icon: <IconPalette size={15} />,
+        action: () => {
+          setShowColorPicker(!showColorPicker);
+          setShowShapeTypePicker(false);
+        },
+      },
+      {
+        label: 'Duplicate',
+        icon: <IconCopy size={15} />,
+        action: () => {
+          const id = addShape(
+            targetShape.type,
+            targetShape.x + 30,
+            targetShape.y + 30,
+            targetShape.width,
+            targetShape.height,
+            targetShape.color,
+            targetShape.text
+          );
+          useBoardStore.getState().setSelectedIds([id]);
+          close();
+        },
+        dividerAfter: true,
+      },
+      {
+        label: 'Connect to…',
+        icon: <IconLink size={15} />,
+        action: () => {
+          setActiveTool('connector');
+          setConnectingFromId(targetId);
+          close();
+        },
+      },
+    );
+
+    const hasConn = connectors.some(c => c.fromCardId === targetId || c.toCardId === targetId);
+    if (hasConn) {
+      menuItems.push({
+        label: 'Unlink Connections',
+        icon: <IconUnlink size={15} />,
+        action: () => { unlinkCard(targetId); close(); },
+      });
+    }
+
+    menuItems.push(
+      {
+        label: 'Bring to Front',
+        icon: <IconBringToFront size={15} />,
+        action: () => { bringShapeToFront(targetId); close(); },
+        dividerAfter: true,
+      },
+      {
+        label: 'Delete',
+        icon: <IconTrash size={15} />,
+        action: () => { deleteShape(targetId); close(); },
+        danger: true,
+      },
+    );
   } else if (targetConnector) {
     menuItems.push(
+      {
+        label: targetConnector.label ? 'Edit Label' : 'Add Label',
+        icon: <IconEdit size={15} />,
+        action: () => {
+          const { setEditingConnectorId } = useBoardStore.getState();
+          setEditingConnectorId(targetId);
+          close();
+        },
+      },
+      {
+        label: targetConnector.style === 'solid' ? 'Change to Dashed' : 'Change to Solid',
+        icon: <IconLink size={15} />,
+        action: () => {
+          const { updateConnector } = useBoardStore.getState();
+          updateConnector(targetId, {
+            style: targetConnector.style === 'solid' ? 'dashed' : 'solid',
+          });
+          close();
+        },
+      },
+      {
+        label: 'Switch Yarn Color',
+        icon: <IconPalette size={15} />,
+        action: () => {
+          const { updateConnector } = useBoardStore.getState();
+          const nextColor = targetConnector.color === 'red' ? 'blue' : targetConnector.color === 'blue' ? 'gray' : 'red';
+          updateConnector(targetId, { color: nextColor });
+          close();
+        },
+        dividerAfter: true,
+      },
       {
         label: 'Delete Connection',
         icon: <IconTrash size={15} />,
@@ -170,9 +280,23 @@ export const ContextMenu: React.FC = () => {
   const x = Math.min(position.x, window.innerWidth - menuW - 8);
   const y = Math.min(position.y, window.innerHeight - menuH - 8);
 
-  const handleColorChange = (color: CardColor) => {
+  const handleCardColorChange = (color: CardColor) => {
     if (targetCard) {
       updateCard(targetId, { color });
+    }
+    close();
+  };
+
+  const handleShapeColorChange = (color: ShapeColor) => {
+    if (targetShape) {
+      updateShape(targetId, { color });
+    }
+    close();
+  };
+
+  const handleShapeTypeChange = (type: ShapeType) => {
+    if (targetShape) {
+      updateShape(targetId, { type });
     }
     close();
   };
@@ -196,15 +320,53 @@ export const ContextMenu: React.FC = () => {
         </div>
       ))}
 
-      {/* Color picker submenu */}
-      {showColorPicker && (
+      {/* Shape Type Submenu */}
+      {showShapeTypePicker && targetShape && (
+        <div className="context-menu-colors" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+          {getAllShapeDefinitions().map((def) => {
+            const Icon = def.icon;
+            return (
+              <button
+                key={def.type}
+                className={`context-menu-item ${targetShape.type === def.type ? 'active' : ''}`}
+                style={{ padding: '6px', justifyContent: 'center' }}
+                onClick={() => handleShapeTypeChange(def.type)}
+                title={def.label}
+              >
+                <Icon size={16} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Color picker submenu for Cards */}
+      {showColorPicker && targetCard && (
         <div className="context-menu-colors">
           {(Object.keys(CARD_COLORS) as CardColor[]).map((c) => (
             <button
               key={c}
-              className={`context-menu-color ${targetCard?.color === c ? 'active' : ''}`}
+              className={`context-menu-color ${targetCard.color === c ? 'active' : ''}`}
               style={{ backgroundColor: CARD_COLORS[c].bg, borderColor: CARD_COLORS[c].border }}
-              onClick={() => handleColorChange(c)}
+              onClick={() => handleCardColorChange(c)}
+              title={c}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Color picker submenu for Shapes */}
+      {showColorPicker && targetShape && (
+        <div className="context-menu-colors">
+          {(Object.keys(SHAPE_COLORS) as ShapeColor[]).map((c) => (
+            <button
+              key={c}
+              className={`context-menu-color ${targetShape.color === c ? 'active' : ''}`}
+              style={{
+                backgroundColor: SHAPE_COLORS[c].bg === 'transparent' ? '#ffffff' : SHAPE_COLORS[c].bg,
+                borderColor: SHAPE_COLORS[c].border,
+              }}
+              onClick={() => handleShapeColorChange(c)}
               title={c}
             />
           ))}
@@ -213,3 +375,4 @@ export const ContextMenu: React.FC = () => {
     </div>
   );
 };
+

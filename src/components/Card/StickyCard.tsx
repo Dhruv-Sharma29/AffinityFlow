@@ -3,6 +3,7 @@ import { Group, Rect, Text, Circle, Line } from 'react-konva';
 import Konva from 'konva';
 import type { Card } from '../../types/board';
 import { CARD_COLORS } from '../../types/board';
+import { useBoardStore } from '../../store/boardStore';
 
 interface StickyCardProps {
   card: Card;
@@ -38,6 +39,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
 }) => {
   const groupRef = useRef<Konva.Group>(null);
   const shadowRectRef = useRef<Konva.Rect>(null);
+  const lastDragPos = useRef({ x: card.x, y: card.y });
   const colors = CARD_COLORS[card.color];
   
   const displayTitle = card.title || 'Double-click to edit';
@@ -47,16 +49,28 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   // Calculate dynamic height based on content
   const contentHeight = useMemo(() => {
     let h = CARD_PADDING;
+    const availableW = Math.max(20, card.width - CARD_PADDING * 2);
+
     if (displayEyebrow) {
       h += EYEBROW_FONT_SIZE * 1.2 + 6;
     }
-    h += TITLE_FONT_SIZE * TITLE_LINE_HEIGHT * Math.ceil((displayTitle.length * TITLE_FONT_SIZE * 0.55) / (card.width - CARD_PADDING * 2)) + 8;
-    h = Math.max(h, TITLE_FONT_SIZE * TITLE_LINE_HEIGHT + CARD_PADDING + 8);
+
+    // Title height calculation
+    const titleCharsPerLine = Math.max(1, Math.floor(availableW / (TITLE_FONT_SIZE * 0.52)));
+    const titleLines = Math.max(1, Math.ceil(displayTitle.length / titleCharsPerLine));
+    const titleH = titleLines * TITLE_FONT_SIZE * TITLE_LINE_HEIGHT;
+    h += titleH + 8;
+
+    // Body height calculation
     if (displayBody) {
-      h += BODY_FONT_SIZE * BODY_LINE_HEIGHT * Math.ceil((displayBody.length * BODY_FONT_SIZE * 0.48) / (card.width - CARD_PADDING * 2)) + 4;
+      const bodyCharsPerLine = Math.max(1, Math.floor(availableW / (BODY_FONT_SIZE * 0.48)));
+      const bodyLines = Math.max(1, Math.ceil(displayBody.length / bodyCharsPerLine));
+      const bodyH = bodyLines * BODY_FONT_SIZE * BODY_LINE_HEIGHT;
+      h += bodyH + 6;
     }
+
     h += CARD_PADDING;
-    return Math.max(h, 80);
+    return Math.max(h, 85);
   }, [displayTitle, displayBody, displayEyebrow, card.width]);
 
   // Build text Y positions
@@ -66,7 +80,9 @@ export const StickyCard: React.FC<StickyCardProps> = ({
     textY += EYEBROW_FONT_SIZE * 1.2 + 6;
   }
   const titleY = textY;
-  const titleEstLines = Math.max(1, Math.ceil((displayTitle.length * TITLE_FONT_SIZE * 0.55) / (card.width - CARD_PADDING * 2)));
+  const availableW = Math.max(20, card.width - CARD_PADDING * 2);
+  const titleCharsPerLine = Math.max(1, Math.floor(availableW / (TITLE_FONT_SIZE * 0.52)));
+  const titleEstLines = Math.max(1, Math.ceil(displayTitle.length / titleCharsPerLine));
   const titleH = titleEstLines * TITLE_FONT_SIZE * TITLE_LINE_HEIGHT;
   const bodyY = titleY + titleH + 8;
 
@@ -130,6 +146,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   }, [card.rotation]);
 
   const handleDragStart = useCallback(() => {
+    lastDragPos.current = { x: card.x, y: card.y };
     onDragStart(card.id);
     const layer = groupRef.current?.getLayer();
     if (groupRef.current) {
@@ -155,7 +172,19 @@ export const StickyCard: React.FC<StickyCardProps> = ({
         onUpdate: () => layer?.batchDraw(),
       });
     }
-  }, [card.id, onDragStart]);
+  }, [card.id, card.x, card.y, onDragStart]);
+
+  const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    const node = e.target;
+    const store = useBoardStore.getState();
+    if (store.selectedIds.includes(card.id) && store.selectedIds.length > 1) {
+      const dx = node.x() - lastDragPos.current.x;
+      const dy = node.y() - lastDragPos.current.y;
+      lastDragPos.current = { x: node.x(), y: node.y() };
+      const otherIds = store.selectedIds.filter(id => id !== card.id);
+      store.moveMultipleItems(dx, dy, otherIds);
+    }
+  }, [card.id]);
 
   const handleDragEnd = useCallback(
     (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -192,6 +221,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
         );
       }}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
       {/* Exact paper drop shadow matching reference image */}
@@ -318,6 +348,8 @@ export const StickyCard: React.FC<StickyCardProps> = ({
           fontStyle="bold"
           letterSpacing={1.4}
           fill={colors.eyebrow}
+          wrap="char"
+          ellipsis={true}
           listening={false}
         />
       )}
@@ -333,7 +365,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
         fontStyle={card.title ? 'bold' : 'normal'}
         lineHeight={TITLE_LINE_HEIGHT}
         fill={card.title ? '#241d18' : '#8a7d6f'}
-        wrap="word"
+        wrap="char"
         listening={false}
       />
 
@@ -348,7 +380,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
           fontSize={BODY_FONT_SIZE}
           lineHeight={BODY_LINE_HEIGHT}
           fill="#5a4f42"
-          wrap="word"
+          wrap="char"
           listening={false}
         />
       )}

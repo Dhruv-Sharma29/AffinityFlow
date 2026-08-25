@@ -1,0 +1,167 @@
+.shape-format-bar {
+  position: fixed;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  background: rgba(36, 29, 24, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: var(--z-toolbar, 200);
+  animation: formatBarFadeIn 0.15s ease-out;
+  pointer-events: auto;
+}
+
+@keyframes formatBarFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1);
+  }
+}
+
+.shape-format-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #f4ecd8;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.shape-format-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.shape-format-btn.active {
+  background: rgba(192, 57, 43, 0.5);
+  border-color: rgba(192, 57, 43, 0.8);
+  color: #ffffff;
+}
+
+.shape-format-btn.danger:hover {
+  background: rgba(192, 57, 43, 0.3);
+  color: #e74c3c;
+}
+
+.shape-dot-indicator {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.shape-format-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 2px;
+}
+
+/* Color Popover */
+.shape-color-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(36, 29, 24, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: formatBarFadeIn 0.12s ease-out;
+}
+
+.shape-swatch-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1.5px solid;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.12s ease;
+  padding: 0;
+}
+
+.shape-swatch-btn:hover {
+  transform: scale(1.2);
+}
+
+.shape-swatch-btn.selected {
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+}
+
+.shape-swatch-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Shape Type Popover */
+.shape-type-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px;
+  background: rgba(36, 29, 24, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: formatBarFadeIn 0.12s ease-out;
+  min-width: 210px;
+}
+
+.shape-type-swatch-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #f4ecd8;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shape-type-swatch-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.shape-type-swatch-btn.selected {
+  background: rgba(192, 57, 43, 0.5);
+  border-color: rgba(192, 57, 43, 0.8);
+  color: #ffffff;
+}

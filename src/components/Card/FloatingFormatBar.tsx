@@ -3,7 +3,7 @@ import { useBoardStore } from '../../store/boardStore';
 import { CARD_COLORS } from '../../types/board';
 import type { CardColor } from '../../types/board';
 import {
-  IconEdit, IconTrash, IconCopy, IconLink, IconUnlink, IconPalette,
+  IconEdit, IconTrash, IconCopy, IconLink, IconUnlink, IconPalette, IconBringToFront,
 } from '../Icons/Icons';
 import './FloatingFormatBar.css';
 
@@ -11,7 +11,7 @@ export const FloatingFormatBar: React.FC = () => {
   const {
     cards, connectors, selectedIds, viewport, editingCardId,
     updateCard, deleteCard, addCard, setEditingCardId,
-    setActiveTool, setConnectingFromId, unlinkCard,
+    setActiveTool, setConnectingFromId, unlinkCard, bringToFront,
   } = useBoardStore();
 
   const [showColors, setShowColors] = useState(false);
@@ -42,6 +42,7 @@ export const FloatingFormatBar: React.FC = () => {
       body: selectedCard.body,
       eyebrow: selectedCard.eyebrow,
     });
+    useBoardStore.getState().setSelectedIds([newId]);
   };
 
   const handleConnect = () => {
@@ -101,6 +102,15 @@ export const FloatingFormatBar: React.FC = () => {
           <IconUnlink size={16} />
         </button>
       )}
+
+      {/* Bring to Front */}
+      <button
+        className="floating-bar-btn"
+        onClick={() => bringToFront(selectedCard.id)}
+        title="Bring to Front"
+      >
+        <IconBringToFront size={16} />
+      </button>
 
       {/* Duplicate */}
       <button
