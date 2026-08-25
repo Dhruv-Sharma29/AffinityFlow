@@ -37,7 +37,7 @@ const BG_OPTIONS = [
 ];
 
 export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
-  const { cards, connectors, clusters } = useBoardStore();
+  const { cards, shapes, connectors, clusters } = useBoardStore();
 
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [quality, setQuality] = useState<ExportQuality>('high');
@@ -49,6 +49,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const totalItems = cards.length + shapes.length;
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -66,7 +68,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
 
     try {
       if (format === 'json') {
-        exportToJson(cards, connectors, clusters, options);
+        exportToJson(cards, shapes, connectors, clusters, options);
       } else {
         const stage = getGlobalStageRef();
         if (!stage) {
@@ -75,13 +77,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
 
         switch (format) {
           case 'pdf':
-            await exportToPdf(stage, cards, clusters, options);
+            await exportToPdf(stage, cards, shapes, clusters, options);
             break;
           case 'png':
-            exportToPng(stage, cards, clusters, options);
+            exportToPng(stage, cards, shapes, clusters, options);
             break;
           case 'svg':
-            exportToSvg(stage, cards, clusters, options);
+            exportToSvg(stage, cards, shapes, clusters, options);
             break;
         }
       }
@@ -119,6 +121,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
         {/* Board info */}
         <div className="export-info">
           <span className="export-info-item">{cards.length} card{cards.length !== 1 ? 's' : ''}</span>
+          <span className="export-info-dot">·</span>
+          <span className="export-info-item">{shapes.length} shape{shapes.length !== 1 ? 's' : ''}</span>
           <span className="export-info-dot">·</span>
           <span className="export-info-item">{connectors.length} connection{connectors.length !== 1 ? 's' : ''}</span>
           <span className="export-info-dot">·</span>
@@ -242,7 +246,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
           <button
             className="export-submit-btn"
             onClick={handleExport}
-            disabled={isExporting || cards.length === 0}
+            disabled={isExporting || totalItems === 0}
           >
             {isExporting ? (
               <>
@@ -261,3 +265,4 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
     </div>
   );
 };
+

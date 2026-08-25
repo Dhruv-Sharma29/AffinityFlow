@@ -164,3 +164,88 @@
   color: #f4ecd8;
   font-family: 'Inter', sans-serif;
 }
+
+/* ─── Shape Tool Wrapper & Flyout ────────────────────────────────── */
+.toolbar-btn-wrapper {
+  position: relative;
+}
+
+.toolbar-dropdown-caret {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 8px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.toolbar-shape-flyout {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 0;
+  min-width: 170px;
+  background: rgba(30, 24, 20, 0.96);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  z-index: 250;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: flyoutSlideIn 0.15s ease-out;
+}
+
+@keyframes flyoutSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.toolbar-flyout-header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(200, 190, 175, 0.6);
+  padding: 0 4px 2px;
+}
+
+.toolbar-flyout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.toolbar-flyout-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  color: #f4ecd8;
+  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.toolbar-flyout-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.toolbar-flyout-item.active {
+  background: rgba(192, 57, 43, 0.65);
+  border-color: rgba(192, 57, 43, 0.8);
+  color: #ffffff;
+}
+

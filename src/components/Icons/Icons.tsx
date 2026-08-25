@@ -157,3 +157,197 @@ export const IconUnlink = ({ size = 20, color = 'currentColor' }: IconProps) => 
     <line x1="2" y1="2" x2="22" y2="22"/>
   </svg>
 );
+
+// ─── Shape Tool & Geometry Icons ─────────────────────────────────────
+export const IconShape = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="11" height="11" rx="1.5" />
+    <circle cx="15.5" cy="15.5" r="5.5" stroke={color} />
+  </svg>
+);
+
+export const IconRectangle = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+  </svg>
+);
+
+export const IconCircle = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+  </svg>
+);
+
+export const IconTriangle = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3L21 19H3L12 3Z" />
+  </svg>
+);
+
+export const IconDiamond = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L22 12L12 22L2 12Z" />
+  </svg>
+);
+
+export const IconStar = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+export const IconHexagon = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2L21 7.2V16.8L12 22L3 16.8V7.2Z" />
+  </svg>
+);
+
+// ─── Template & Sensemaking Icons ─────────────────────────────────────
+
+/** Toolbar icon: pinboard/corkboard with push-pins */
+export const IconTemplate = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Corkboard frame */}
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    {/* Push-pin head (top-left card) */}
+    <circle cx="8" cy="7" r="1.2" fill={color} stroke="none" />
+    {/* Card 1 */}
+    <rect x="5.5" y="8" width="5.5" height="4" rx="0.5" />
+    {/* Push-pin head (top-right card) */}
+    <circle cx="16" cy="7" r="1.2" fill={color} stroke="none" />
+    {/* Card 2 */}
+    <rect x="13" y="8" width="5.5" height="4" rx="0.5" />
+    {/* Yarn string connecting cards */}
+    <path d="M11 10Q12 14 13 10" strokeDasharray="1.5 1" />
+    {/* Bottom label strip */}
+    <line x1="6" y1="16" x2="18" y2="16" />
+    <line x1="6" y1="18.5" x2="14" y2="18.5" />
+  </svg>
+);
+
+/** Investigative Sensemaking Web — magnifying glass over a web/thread */
+export const IconInvestigate = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Magnifying glass */}
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <line x1="15.1" y1="15.1" x2="21" y2="21" />
+    {/* Evidence threads inside lens */}
+    <circle cx="8" cy="9" r="1" fill={color} stroke="none" />
+    <circle cx="13" cy="8.5" r="1" fill={color} stroke="none" />
+    <circle cx="10" cy="13" r="1" fill={color} stroke="none" />
+    <line x1="8.7" y1="9.5" x2="9.5" y2="12.3" />
+    <line x1="10.7" y1="12.5" x2="12.5" y2="9.2" />
+  </svg>
+);
+
+/** UX Research Affinity Map — speech bubble with affinity dots */
+export const IconAffinityMap = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Speech bubble / card cluster */}
+    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+    {/* Affinity sticky squares */}
+    <rect x="7" y="7" width="3.5" height="3" rx="0.5" fill={color} fillOpacity="0.15" />
+    <rect x="12" y="7" width="3.5" height="3" rx="0.5" fill={color} fillOpacity="0.15" />
+    <rect x="9.5" y="11.5" width="3.5" height="3" rx="0.5" fill={color} fillOpacity="0.15" />
+  </svg>
+);
+
+/** Root Cause & 5 Whys — branching tree */
+export const IconRootCause = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Trunk */}
+    <line x1="12" y1="3" x2="12" y2="13" />
+    {/* Branch left */}
+    <line x1="12" y1="8" x2="6" y2="13" />
+    {/* Branch right */}
+    <line x1="12" y1="8" x2="18" y2="13" />
+    {/* Root tendrils */}
+    <line x1="12" y1="13" x2="9" y2="18" />
+    <line x1="12" y1="13" x2="15" y2="18" />
+    <line x1="6" y1="13" x2="4" y2="18" />
+    <line x1="18" y1="13" x2="20" y2="18" />
+    {/* Node dots */}
+    <circle cx="12" cy="3" r="1.3" fill={color} stroke="none" />
+    <circle cx="6" cy="13" r="1.3" fill={color} stroke="none" />
+    <circle cx="18" cy="13" r="1.3" fill={color} stroke="none" />
+    <circle cx="12" cy="13" r="1.3" fill={color} stroke="none" />
+    <circle cx="9" cy="18" r="1.3" fill={color} stroke="none" />
+    <circle cx="15" cy="18" r="1.3" fill={color} stroke="none" />
+    <circle cx="4" cy="18" r="1.3" fill={color} stroke="none" />
+    <circle cx="20" cy="18" r="1.3" fill={color} stroke="none" />
+  </svg>
+);
+
+/** SWOT Strategy — 4-quadrant target/crosshair */
+export const IconSwotMatrix = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Outer frame */}
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    {/* Cross dividers */}
+    <line x1="12" y1="3" x2="12" y2="21" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    {/* Quadrant indicators */}
+    <circle cx="7.5" cy="7.5" r="1.2" fill={color} stroke="none" />
+    <circle cx="16.5" cy="7.5" r="1.2" fill={color} stroke="none" />
+    <circle cx="7.5" cy="16.5" r="1.2" fill={color} stroke="none" />
+    <circle cx="16.5" cy="16.5" r="1.2" fill={color} stroke="none" />
+  </svg>
+);
+
+// ─── Minimap / Radar Icons ────────────────────────────────────────────
+
+/** Radar sweep — concentric arcs with a sweep line and blip dots */
+export const IconRadarMap = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Outer circle */}
+    <circle cx="12" cy="12" r="9" />
+    {/* Middle ring */}
+    <circle cx="12" cy="12" r="5.5" opacity="0.5" />
+    {/* Inner ring */}
+    <circle cx="12" cy="12" r="2" opacity="0.3" />
+    {/* Crosshair lines */}
+    <line x1="12" y1="3" x2="12" y2="5" />
+    <line x1="12" y1="19" x2="12" y2="21" />
+    <line x1="3" y1="12" x2="5" y2="12" />
+    <line x1="19" y1="12" x2="21" y2="12" />
+    {/* Sweep line */}
+    <line x1="12" y1="12" x2="17.5" y2="5" />
+    {/* Blip dots */}
+    <circle cx="15" cy="9" r="1" fill={color} stroke="none" />
+    <circle cx="9" cy="14.5" r="0.8" fill={color} stroke="none" />
+  </svg>
+);
+
+/** Eye-slash — hide map indicator */
+export const IconHideMap = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    {/* Eye shape */}
+    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+    {/* Iris */}
+    <path d="M14.12 14.12a3 3 0 11-4.24-4.24" />
+    {/* Slash */}
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+);
+
+// ─── Sound Icons ──────────────────────────────────────────────────────
+
+/** Speaker with sound waves — sound enabled */
+export const IconSoundOn = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M15.54 8.46a5 5 0 010 7.07" />
+    <path d="M19.07 4.93a10 10 0 010 14.14" />
+  </svg>
+);
+
+/** Speaker with slash — sound muted */
+export const IconSoundOff = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <line x1="23" y1="9" x2="17" y2="15" />
+    <line x1="17" y1="9" x2="23" y2="15" />
+  </svg>
+);
+

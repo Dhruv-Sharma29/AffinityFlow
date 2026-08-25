@@ -4,6 +4,8 @@ import type Konva from 'konva';
 import { useBoardStore } from '../../store/boardStore';
 import { setGlobalStageRef } from '../../utils/stageRef';
 import { StickyCard } from '../Card/StickyCard';
+import { ShapeNode } from '../Shape/ShapeNode';
+import { getShapeDefinition } from '../Shape/shapeRegistry';
 import { ConnectorLine } from '../Connector/ConnectorLine';
 import { ConnectorCreator } from '../Connector/ConnectorCreator';
 import { ClusterLabel } from '../Cluster/ClusterLabel';
@@ -23,13 +25,23 @@ export const InfiniteCanvas: React.FC = () => {
   const isPanning = useRef(false);
   const lastPointerPos = useRef({ x: 0, y: 0 });
 
+  // Drag-to-draw state for shapes
+  const [drawingShapeStart, setDrawingShapeStart] = useState<{ x: number; y: number } | null>(null);
+  const [drawingShapeCurrent, setDrawingShapeCurrent] = useState<{ x: number; y: number } | null>(null);
+
+  // Marquee selection state
+  const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
+  const [marqueeCurrent, setMarqueeCurrent] = useState<{ x: number; y: number } | null>(null);
+
   const {
-    cards, connectors, clusters,
+    cards, shapes, connectors, clusters,
     viewport, setViewport,
-    activeTool,
+    activeTool, activeShapeType,
     selectedIds, setSelectedIds, clearSelection,
     addCard, moveCard, bringToFront,
+    addShape, moveShape, resizeShape, bringShapeToFront,
     editingCardId, setEditingCardId,
+    editingShapeId, setEditingShapeId,
     connectingFromId, setConnectingFromId,
     addConnector,
     setActiveTool,
@@ -83,14 +95,9 @@ export const InfiniteCanvas: React.FC = () => {
     [viewport, setViewport]
   );
 
-  // ─── Stage mouse down (pan or place card) ────────────────────────
+  // ─── Stage mouse down (pan, place card, or start drawing shape) ───
   const handleMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      // Only handle clicks on the stage itself (not on cards, etc.)
-      if (e.target !== e.currentTarget && e.target.getClassName() !== 'Rect') {
-        return;
-      }
-
       const isBackgroundClick =
         e.target === e.currentTarget ||
         e.target.name() === 'background' ||
@@ -113,6 +120,12 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
+      if (activeTool === 'shape') {
+        setDrawingShapeStart({ x: worldX, y: worldY });
+        setDrawingShapeCurrent({ x: worldX, y: worldY });
+        return;
+      }
+
       if (activeTool === 'cluster') {
         const { addCluster } = useBoardStore.getState();
         addCluster(worldX - 150, worldY - 20);
@@ -127,9 +140,13 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
-      // Left click on background → clear selection
-      if (e.evt.button === 0) {
-        clearSelection();
+      // Left click on background in select mode → start rubber-band marquee
+      if (e.evt.button === 0 && activeTool === 'select') {
+        setMarqueeStart({ x: worldX, y: worldY });
+        setMarqueeCurrent({ x: worldX, y: worldY });
+        if (!e.evt.shiftKey) {
+          clearSelection();
+        }
         if (connectingFromId) {
           setConnectingFromId(null);
         }
@@ -166,21 +183,123 @@ export const InfiniteCanvas: React.FC = () => {
 
   const handleMouseMove = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
-      if (!isPanning.current) return;
-      const dx = e.evt.clientX - lastPointerPos.current.x;
-      const dy = e.evt.clientY - lastPointerPos.current.y;
-      lastPointerPos.current = { x: e.evt.clientX, y: e.evt.clientY };
-      setViewport({
-        x: viewport.x + dx,
-        y: viewport.y + dy,
-      });
+      if (isPanning.current) {
+        const dx = e.evt.clientX - lastPointerPos.current.x;
+        const dy = e.evt.clientY - lastPointerPos.current.y;
+        lastPointerPos.current = { x: e.evt.clientX, y: e.evt.clientY };
+        setViewport({
+          x: viewport.x + dx,
+          y: viewport.y + dy,
+        });
+        return;
+      }
+
+      // If drawing a shape, update the current drag point
+      if (drawingShapeStart) {
+        const stage = stageRef.current;
+        if (!stage) return;
+        const pointer = stage.getPointerPosition();
+        if (!pointer) return;
+        const worldX = (pointer.x - viewport.x) / viewport.scale;
+        const worldY = (pointer.y - viewport.y) / viewport.scale;
+        setDrawingShapeCurrent({ x: worldX, y: worldY });
+        return;
+      }
+
+      // If dragging marquee selection, update current point
+      if (marqueeStart) {
+        const stage = stageRef.current;
+        if (!stage) return;
+        const pointer = stage.getPointerPosition();
+        if (!pointer) return;
+        const worldX = (pointer.x - viewport.x) / viewport.scale;
+        const worldY = (pointer.y - viewport.y) / viewport.scale;
+        setMarqueeCurrent({ x: worldX, y: worldY });
+      }
     },
-    [viewport, setViewport]
+    [viewport, setViewport, drawingShapeStart, marqueeStart]
   );
 
   const handleMouseUp = useCallback(() => {
     isPanning.current = false;
-  }, []);
+
+    // Finish marquee selection if active
+    if (marqueeStart && marqueeCurrent) {
+      const startX = marqueeStart.x;
+      const startY = marqueeStart.y;
+      const currX = marqueeCurrent.x;
+      const currY = marqueeCurrent.y;
+
+      const boxX = Math.min(startX, currX);
+      const boxY = Math.min(startY, currY);
+      const boxW = Math.abs(currX - startX);
+      const boxH = Math.abs(currY - startY);
+
+      if (boxW > 8 || boxH > 8) {
+        const selected: string[] = [];
+
+        cards.forEach((c) => {
+          if (c.x < boxX + boxW && c.x + c.width > boxX && c.y < boxY + boxH && c.y + c.height > boxY) {
+            selected.push(c.id);
+          }
+        });
+
+        shapes.forEach((s) => {
+          if (s.x < boxX + boxW && s.x + s.width > boxX && s.y < boxY + boxH && s.y + s.height > boxY) {
+            selected.push(s.id);
+          }
+        });
+
+        clusters.forEach((cl) => {
+          if (cl.x < boxX + boxW && cl.x + cl.width > boxX && cl.y < boxY + boxH && cl.y + cl.height > boxY) {
+            selected.push(cl.id);
+          }
+        });
+
+        if (selected.length > 0) {
+          setSelectedIds(selected);
+        }
+      }
+
+      setMarqueeStart(null);
+      setMarqueeCurrent(null);
+    }
+
+    // Finish drawing shape if active
+    if (drawingShapeStart && drawingShapeCurrent) {
+      const startX = drawingShapeStart.x;
+      const startY = drawingShapeStart.y;
+      const currentX = drawingShapeCurrent.x;
+      const currentY = drawingShapeCurrent.y;
+
+      const dragWidth = Math.abs(currentX - startX);
+      const dragHeight = Math.abs(currentY - startY);
+
+      const shapeDef = getShapeDefinition(activeShapeType);
+
+      let finalId = '';
+      if (dragWidth < 15 && dragHeight < 15) {
+        // Single click: place default sized shape centered at click
+        const defaultW = shapeDef.defaultWidth;
+        const defaultH = shapeDef.defaultHeight;
+        finalId = addShape(activeShapeType, startX - defaultW / 2, startY - defaultH / 2, defaultW, defaultH);
+      } else {
+        // Drag to size: place shape with calculated bounding box
+        const x = Math.min(startX, currentX);
+        const y = Math.min(startY, currentY);
+        const width = Math.max(30, dragWidth);
+        const height = Math.max(30, dragHeight);
+        finalId = addShape(activeShapeType, x, y, width, height);
+      }
+
+      if (finalId) {
+        setSelectedIds([finalId]);
+      }
+      setDrawingShapeStart(null);
+      setDrawingShapeCurrent(null);
+      setActiveTool('select');
+    }
+  }, [marqueeStart, marqueeCurrent, cards, shapes, clusters, drawingShapeStart, drawingShapeCurrent, activeShapeType, addShape, setSelectedIds, setActiveTool]);
 
   // ─── Card interaction handlers ───────────────────────────────────
   const handleCardSelect = useCallback(
@@ -207,7 +326,6 @@ export const InfiniteCanvas: React.FC = () => {
 
   const handleCardDragStart = useCallback(
     (id: string) => {
-      // Push history on drag start
       const store = useBoardStore.getState();
       store.pushHistory();
       bringToFront(id);
@@ -229,12 +347,64 @@ export const InfiniteCanvas: React.FC = () => {
     [setEditingCardId]
   );
 
+  // ─── Shape interaction handlers ──────────────────────────────────
+  const handleShapeSelect = useCallback(
+    (id: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (activeTool === 'connector') {
+        if (!connectingFromId) {
+          setConnectingFromId(id);
+        } else if (connectingFromId !== id) {
+          addConnector(connectingFromId, id);
+          setConnectingFromId(null);
+        }
+        return;
+      }
+      if (e.evt.shiftKey) {
+        const store = useBoardStore.getState();
+        store.toggleSelection(id);
+      } else {
+        setSelectedIds([id]);
+      }
+      bringShapeToFront(id);
+    },
+    [activeTool, connectingFromId, setConnectingFromId, addConnector, setSelectedIds, bringShapeToFront]
+  );
+
+  const handleShapeDragStart = useCallback(
+    (id: string) => {
+      const store = useBoardStore.getState();
+      store.pushHistory();
+      bringShapeToFront(id);
+    },
+    [bringShapeToFront]
+  );
+
+  const handleShapeDragEnd = useCallback(
+    (id: string, x: number, y: number) => {
+      moveShape(id, x, y);
+    },
+    [moveShape]
+  );
+
+  const handleShapeTransformEnd = useCallback(
+    (id: string, width: number, height: number, x: number, y: number, rotation: number) => {
+      resizeShape(id, width, height, x, y, rotation);
+    },
+    [resizeShape]
+  );
+
+  const handleShapeDoubleClick = useCallback(
+    (id: string) => {
+      setEditingShapeId(id);
+    },
+    [setEditingShapeId]
+  );
+
   // ─── Compute dot grid ────────────────────────────────────────────
   const renderDotGrid = useCallback(() => {
     const { x: vx, y: vy, scale } = viewport;
     const dots: React.ReactElement[] = [];
 
-    // Only render if scale is reasonable
     if (scale < 0.2) return null;
 
     const adjustedSpacing = DOT_SPACING;
@@ -243,7 +413,6 @@ export const InfiniteCanvas: React.FC = () => {
     const endX = startX + (stageSize.width / scale) + adjustedSpacing;
     const endY = startY + (stageSize.height / scale) + adjustedSpacing;
 
-    // Limit dots rendered for performance
     const maxDots = 2000;
     let count = 0;
     for (let x = startX; x < endX && count < maxDots; x += adjustedSpacing) {
@@ -265,15 +434,42 @@ export const InfiniteCanvas: React.FC = () => {
     return dots;
   }, [viewport, stageSize]);
 
-  // ─── Sort cards by zIndex for rendering ──────────────────────────
+  // Sort cards and shapes by zIndex
   const sortedCards = [...cards].sort((a, b) => a.zIndex - b.zIndex);
+  const sortedShapes = [...shapes].sort((a, b) => a.zIndex - b.zIndex);
+
+  // Connector source item (could be Card or Shape)
+  const connectingSourceItem = connectingFromId
+    ? cards.find(c => c.id === connectingFromId) || shapes.find(s => s.id === connectingFromId)
+    : null;
 
   // Cursor style
   let cursor = 'default';
   if (activeTool === 'hand' || isPanning.current) cursor = 'grab';
   if (activeTool === 'card') cursor = 'crosshair';
+  if (activeTool === 'shape') cursor = 'crosshair';
   if (activeTool === 'connector') cursor = 'crosshair';
   if (activeTool === 'cluster') cursor = 'crosshair';
+
+  // Drag-to-draw shape ghost calculation
+  let ghostBox: { x: number; y: number; width: number; height: number } | null = null;
+  if (drawingShapeStart && drawingShapeCurrent) {
+    const x = Math.min(drawingShapeStart.x, drawingShapeCurrent.x);
+    const y = Math.min(drawingShapeStart.y, drawingShapeCurrent.y);
+    const width = Math.max(1, Math.abs(drawingShapeCurrent.x - drawingShapeStart.x));
+    const height = Math.max(1, Math.abs(drawingShapeCurrent.y - drawingShapeStart.y));
+    ghostBox = { x, y, width, height };
+  }
+
+  // Marquee box calculation
+  let marqueeBox: { x: number; y: number; width: number; height: number } | null = null;
+  if (marqueeStart && marqueeCurrent) {
+    const x = Math.min(marqueeStart.x, marqueeCurrent.x);
+    const y = Math.min(marqueeStart.y, marqueeCurrent.y);
+    const width = Math.max(1, Math.abs(marqueeCurrent.x - marqueeStart.x));
+    const height = Math.max(1, Math.abs(marqueeCurrent.y - marqueeStart.y));
+    marqueeBox = { x, y, width, height };
+  }
 
   return (
     <Stage
@@ -321,25 +517,60 @@ export const InfiniteCanvas: React.FC = () => {
       {/* Connectors layer */}
       <Layer>
         {connectors.map(conn => {
-          const fromCard = cards.find(c => c.id === conn.fromCardId);
-          const toCard = cards.find(c => c.id === conn.toCardId);
-          if (!fromCard || !toCard) return null;
+          const fromItem = cards.find(c => c.id === conn.fromCardId) || shapes.find(s => s.id === conn.fromCardId);
+          const toItem = cards.find(c => c.id === conn.toCardId) || shapes.find(s => s.id === conn.toCardId);
+          if (!fromItem || !toItem) return null;
           return (
             <ConnectorLine
               key={conn.id}
               connector={conn}
-              fromCard={fromCard}
-              toCard={toCard}
+              fromItem={fromItem}
+              toItem={toItem}
               isSelected={selectedIds.includes(conn.id)}
               onSelect={(id) => setSelectedIds([id])}
             />
           );
         })}
-        {connectingFromId && (
+        {connectingSourceItem && (
           <ConnectorCreator
-            fromCard={cards.find(c => c.id === connectingFromId)!}
+            fromItem={connectingSourceItem}
             stageRef={stageRef}
             viewport={viewport}
+          />
+        )}
+      </Layer>
+
+      {/* Shapes layer */}
+      <Layer>
+        {sortedShapes.map(shape => (
+          <ShapeNode
+            key={shape.id}
+            shape={shape}
+            isSelected={selectedIds.includes(shape.id)}
+            isEditing={editingShapeId === shape.id}
+            isConnecting={activeTool === 'connector'}
+            isConnectingSource={connectingFromId === shape.id}
+            onSelect={handleShapeSelect}
+            onDragStart={handleShapeDragStart}
+            onDragEnd={handleShapeDragEnd}
+            onTransformEnd={handleShapeTransformEnd}
+            onDoubleClick={handleShapeDoubleClick}
+          />
+        ))}
+
+        {/* Live Drag-to-Draw Ghost Preview */}
+        {ghostBox && (
+          <Rect
+            x={ghostBox.x}
+            y={ghostBox.y}
+            width={ghostBox.width}
+            height={ghostBox.height}
+            stroke="#c0392b"
+            strokeWidth={1.5}
+            dash={[6, 3]}
+            fill="rgba(192, 57, 43, 0.08)"
+            cornerRadius={activeShapeType === 'rectangle' ? 4 : undefined}
+            listening={false}
           />
         )}
       </Layer>
@@ -360,7 +591,24 @@ export const InfiniteCanvas: React.FC = () => {
             onDoubleClick={handleCardDoubleClick}
           />
         ))}
+
+        {/* Live Marquee Rubber-Band Selection Box */}
+        {marqueeBox && (
+          <Rect
+            x={marqueeBox.x}
+            y={marqueeBox.y}
+            width={marqueeBox.width}
+            height={marqueeBox.height}
+            stroke="#a3312b"
+            strokeWidth={1.5}
+            dash={[6, 3]}
+            fill="rgba(163, 49, 43, 0.08)"
+            cornerRadius={2}
+            listening={false}
+          />
+        )}
       </Layer>
     </Stage>
   );
 };
+

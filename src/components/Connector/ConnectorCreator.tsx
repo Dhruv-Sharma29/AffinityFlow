@@ -1,16 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Line, Circle } from 'react-konva';
 import type Konva from 'konva';
-import type { Card, Viewport } from '../../types/board';
+import type { Card, Shape, Viewport } from '../../types/board';
 
 interface ConnectorCreatorProps {
-  fromCard: Card;
+  fromItem: Card | Shape;
   stageRef: React.RefObject<Konva.Stage | null>;
   viewport: Viewport;
 }
 
+function getItemAnchor(item: Card | Shape): { x: number; y: number } {
+  if ('title' in item) {
+    return { x: item.x + item.width / 2, y: item.y - 6 };
+  }
+  return { x: item.x + item.width / 2, y: item.y };
+}
+
 export const ConnectorCreator: React.FC<ConnectorCreatorProps> = ({
-  fromCard,
+  fromItem,
   stageRef,
   viewport,
 }) => {
@@ -35,8 +42,9 @@ export const ConnectorCreator: React.FC<ConnectorCreatorProps> = ({
 
   if (!mousePos) return null;
 
-  const startX = fromCard.x + fromCard.width / 2;
-  const startY = fromCard.y - 6;
+  const anchor = getItemAnchor(fromItem);
+  const startX = anchor.x;
+  const startY = anchor.y;
 
   // Compute droop
   const dx = mousePos.x - startX;
@@ -80,3 +88,4 @@ export const ConnectorCreator: React.FC<ConnectorCreatorProps> = ({
     </>
   );
 };
+
