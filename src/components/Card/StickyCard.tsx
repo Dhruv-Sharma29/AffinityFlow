@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
 import { Group, Rect, Text, Circle, Line } from 'react-konva';
-import type Konva from 'konva';
+import Konva from 'konva';
 import type { Card } from '../../types/board';
 import { CARD_COLORS } from '../../types/board';
 
@@ -36,6 +36,8 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   onDragEnd,
   onDoubleClick,
 }) => {
+  const groupRef = useRef<Konva.Group>(null);
+  const shadowRectRef = useRef<Konva.Rect>(null);
   const colors = CARD_COLORS[card.color];
   
   const displayTitle = card.title || 'Double-click to edit';
@@ -44,16 +46,16 @@ export const StickyCard: React.FC<StickyCardProps> = ({
 
   // Calculate dynamic height based on content
   const contentHeight = useMemo(() => {
-    let h = CARD_PADDING; // top padding
+    let h = CARD_PADDING;
     if (displayEyebrow) {
-      h += EYEBROW_FONT_SIZE * 1.2 + 6; // eyebrow + margin
+      h += EYEBROW_FONT_SIZE * 1.2 + 6;
     }
     h += TITLE_FONT_SIZE * TITLE_LINE_HEIGHT * Math.ceil((displayTitle.length * TITLE_FONT_SIZE * 0.55) / (card.width - CARD_PADDING * 2)) + 8;
     h = Math.max(h, TITLE_FONT_SIZE * TITLE_LINE_HEIGHT + CARD_PADDING + 8);
     if (displayBody) {
       h += BODY_FONT_SIZE * BODY_LINE_HEIGHT * Math.ceil((displayBody.length * BODY_FONT_SIZE * 0.48) / (card.width - CARD_PADDING * 2)) + 4;
     }
-    h += CARD_PADDING; // bottom padding
+    h += CARD_PADDING;
     return Math.max(h, 80);
   }, [displayTitle, displayBody, displayEyebrow, card.width]);
 
@@ -64,7 +66,6 @@ export const StickyCard: React.FC<StickyCardProps> = ({
     textY += EYEBROW_FONT_SIZE * 1.2 + 6;
   }
   const titleY = textY;
-  // Estimate title height for body positioning
   const titleEstLines = Math.max(1, Math.ceil((displayTitle.length * TITLE_FONT_SIZE * 0.55) / (card.width - CARD_PADDING * 2)));
   const titleH = titleEstLines * TITLE_FONT_SIZE * TITLE_LINE_HEIGHT;
   const bodyY = titleY + titleH + 8;
@@ -73,8 +74,101 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   const pinX = card.width / 2;
   const pinY = -PIN_RADIUS + 2;
 
+  // Hover alignment & exact paper shadow matching the sensemaking gap reference
+  const handleMouseEnter = useCallback(() => {
+    const layer = groupRef.current?.getLayer();
+    if (groupRef.current) {
+      groupRef.current.to({
+        rotation: 0,
+        scaleX: 1.035,
+        scaleY: 1.035,
+        duration: 0.2,
+        easing: Konva.Easings.EaseOut,
+        onUpdate: () => layer?.batchDraw(),
+      });
+    }
+    if (shadowRectRef.current) {
+      shadowRectRef.current.to({
+        x: 6,
+        y: 12,
+        shadowBlur: 18,
+        shadowOffsetX: 6,
+        shadowOffsetY: 12,
+        shadowOpacity: 0.48,
+        duration: 0.2,
+        easing: Konva.Easings.EaseOut,
+        onUpdate: () => layer?.batchDraw(),
+      });
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    const layer = groupRef.current?.getLayer();
+    if (groupRef.current) {
+      groupRef.current.to({
+        rotation: card.rotation,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 0.2,
+        easing: Konva.Easings.EaseOut,
+        onUpdate: () => layer?.batchDraw(),
+      });
+    }
+    if (shadowRectRef.current) {
+      shadowRectRef.current.to({
+        x: 3,
+        y: 6,
+        shadowBlur: 10,
+        shadowOffsetX: 3,
+        shadowOffsetY: 6,
+        shadowOpacity: 0.32,
+        duration: 0.2,
+        easing: Konva.Easings.EaseOut,
+        onUpdate: () => layer?.batchDraw(),
+      });
+    }
+  }, [card.rotation]);
+
+  const handleDragStart = useCallback(() => {
+    onDragStart(card.id);
+    const layer = groupRef.current?.getLayer();
+    if (groupRef.current) {
+      groupRef.current.to({
+        rotation: 0,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 0.15,
+        easing: Konva.Easings.EaseOut,
+        onUpdate: () => layer?.batchDraw(),
+      });
+    }
+    if (shadowRectRef.current) {
+      shadowRectRef.current.to({
+        x: 8,
+        y: 16,
+        shadowBlur: 22,
+        shadowOffsetX: 8,
+        shadowOffsetY: 16,
+        shadowOpacity: 0.55,
+        duration: 0.15,
+        easing: Konva.Easings.EaseOut,
+        onUpdate: () => layer?.batchDraw(),
+      });
+    }
+  }, [card.id, onDragStart]);
+
+  const handleDragEnd = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      const node = e.target;
+      onDragEnd(card.id, node.x(), node.y());
+      handleMouseLeave();
+    },
+    [card.id, onDragEnd, handleMouseLeave]
+  );
+
   return (
     <Group
+      ref={groupRef}
       x={card.x}
       y={card.y}
       rotation={card.rotation}
@@ -83,20 +177,37 @@ export const StickyCard: React.FC<StickyCardProps> = ({
       onTap={(e) => onSelect(card.id, e as unknown as Konva.KonvaEventObject<MouseEvent>)}
       onDblClick={() => onDoubleClick(card.id)}
       onDblTap={() => onDoubleClick(card.id)}
-      onDragStart={() => onDragStart(card.id)}
-      onDragEnd={(e) => {
-        const node = e.target;
-        onDragEnd(card.id, node.x(), node.y());
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onContextMenu={(e) => {
+        e.evt.preventDefault();
+        window.dispatchEvent(
+          new CustomEvent('canvas-context-menu', {
+            detail: {
+              clientX: e.evt.clientX,
+              clientY: e.evt.clientY,
+              targetId: card.id,
+            },
+          })
+        );
       }}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
-      {/* Card shadow */}
+      {/* Exact paper drop shadow matching reference image */}
       <Rect
-        x={2}
-        y={4}
+        ref={shadowRectRef}
+        x={3}
+        y={6}
         width={card.width}
         height={contentHeight}
         cornerRadius={CORNER_RADIUS}
-        fill="rgba(20, 14, 8, 0.2)"
+        fill="rgba(20, 10, 5, 0.22)"
+        shadowColor="rgba(20, 10, 5, 0.45)"
+        shadowBlur={10}
+        shadowOffsetX={3}
+        shadowOffsetY={6}
+        shadowOpacity={0.32}
         listening={false}
       />
 
@@ -167,7 +278,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
       {/* Push pin shadow */}
       <Circle
         x={pinX}
-        y={pinY + 2}
+        y={pinY + 3}
         radius={PIN_RADIUS}
         fill="rgba(0,0,0,0.35)"
         listening={false}

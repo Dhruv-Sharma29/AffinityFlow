@@ -138,6 +138,32 @@ export const InfiniteCanvas: React.FC = () => {
     [activeTool, viewport, addCard, clearSelection, connectingFromId, setConnectingFromId, setActiveTool]
   );
 
+  // ─── Stage double click (instant card creation on empty canvas) ────
+  const handleStageDblClick = useCallback(
+    (e: Konva.KonvaEventObject<any>) => {
+      const isBackgroundClick =
+        e.target === e.currentTarget ||
+        e.target.name() === 'background' ||
+        e.target.name() === 'dot';
+
+      if (!isBackgroundClick) return;
+
+      const stage = stageRef.current;
+      if (!stage) return;
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+
+      const worldX = (pointer.x - viewport.x) / viewport.scale;
+      const worldY = (pointer.y - viewport.y) / viewport.scale;
+
+      const newId = addCard(worldX - 110, worldY - 70);
+      setSelectedIds([newId]);
+      setEditingCardId(newId);
+      setActiveTool('select');
+    },
+    [viewport, addCard, setSelectedIds, setEditingCardId, setActiveTool]
+  );
+
   const handleMouseMove = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
       if (!isPanning.current) return;
@@ -260,6 +286,8 @@ export const InfiniteCanvas: React.FC = () => {
       y={viewport.y}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
+      onDblClick={handleStageDblClick}
+      onDblTap={handleStageDblClick}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}

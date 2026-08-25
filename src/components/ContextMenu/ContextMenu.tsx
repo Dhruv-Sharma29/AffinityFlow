@@ -3,7 +3,7 @@ import { useBoardStore } from '../../store/boardStore';
 import { CARD_COLORS } from '../../types/board';
 import type { CardColor } from '../../types/board';
 import {
-  IconEdit, IconTrash, IconCopy, IconLink,
+  IconEdit, IconTrash, IconCopy, IconLink, IconUnlink,
   IconPalette, IconBringToFront,
 } from '../Icons/Icons';
 import './ContextMenu.css';
@@ -31,7 +31,7 @@ export const ContextMenu: React.FC = () => {
     cards, connectors,
     setSelectedIds,
     setEditingCardId,
-    deleteCard, deleteConnector,
+    deleteCard, deleteConnector, unlinkCard,
     updateCard, bringToFront,
     addCard,
     setActiveTool, setConnectingFromId,
@@ -128,6 +128,18 @@ export const ContextMenu: React.FC = () => {
           close();
         },
       },
+    );
+
+    const hasConn = connectors.some(c => c.fromCardId === targetId || c.toCardId === targetId);
+    if (hasConn) {
+      menuItems.push({
+        label: 'Unlink Connections',
+        icon: <IconUnlink size={15} />,
+        action: () => { unlinkCard(targetId); close(); },
+      });
+    }
+
+    menuItems.push(
       {
         label: 'Bring to Front',
         icon: <IconBringToFront size={15} />,
