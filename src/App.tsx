@@ -2,6 +2,7 @@ import { useEffect, useCallback, useState } from 'react';
 import { InfiniteCanvas } from './components/Canvas/InfiniteCanvas';
 import { CanvasToolbar } from './components/Canvas/CanvasToolbar';
 import { CardEditor } from './components/Card/CardEditor';
+import { CardDetailModal } from './components/Card/CardDetailModal';
 import { ShapeTextEditor } from './components/Shape/ShapeTextEditor';
 import { ConnectorLabelEditor } from './components/Connector/ConnectorLabelEditor';
 import { ExportModal } from './components/Export/ExportModal';
@@ -31,6 +32,7 @@ function App() {
     undo,
     redo,
     editingCardId,
+    viewingCardId,
     editingShapeId,
     editingConnectorId,
     selectedIds,
@@ -46,7 +48,7 @@ function App() {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       // Don't capture shortcuts when editing a card/shape/connector or export/templates is open
-      if (editingCardId || editingShapeId || editingConnectorId || exportOpen || templatesOpen) return;
+      if (editingCardId || viewingCardId || editingShapeId || editingConnectorId || exportOpen || templatesOpen) return;
 
       // Don't capture when typing in an input/textarea
       const tag = (e.target as HTMLElement).tagName;
@@ -129,7 +131,7 @@ function App() {
         return;
       }
     },
-    [editingCardId, editingShapeId, selectedIds, deleteSelected, undo, redo, setActiveTool, connectingFromId, setConnectingFromId, exportOpen]
+    [editingCardId, viewingCardId, editingShapeId, selectedIds, deleteSelected, undo, redo, setActiveTool, connectingFromId, setConnectingFromId, exportOpen]
   );
 
   const handleKeyUp = useCallback(
@@ -203,6 +205,9 @@ function App() {
         onOpenExport={() => setExportOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
       />
+
+      {/* Card Detail Modal (full content view on double-click) */}
+      <CardDetailModal />
 
       {/* Card Editor */}
       <CardEditor />

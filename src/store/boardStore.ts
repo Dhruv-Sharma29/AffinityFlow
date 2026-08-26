@@ -25,6 +25,7 @@ interface BoardStore {
   activeShapeType: ShapeType;
   viewport: Viewport;
   editingCardId: string | null;
+  viewingCardId: string | null;
   editingShapeId: string | null;
   editingConnectorId: string | null;
   connectingFromId: string | null;
@@ -85,6 +86,7 @@ interface BoardStore {
 
   // Editing
   setEditingCardId: (id: string | null) => void;
+  setViewingCardId: (id: string | null) => void;
   setConnectingFromId: (id: string | null) => void;
 
   // History
@@ -130,6 +132,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   activeShapeType: 'rectangle',
   viewport: { x: 0, y: 0, scale: 1 },
   editingCardId: null,
+  viewingCardId: null,
   editingShapeId: null,
   editingConnectorId: null,
   connectingFromId: null,
@@ -528,7 +531,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   resetView: () => set({ viewport: { x: 0, y: 0, scale: 1 } }),
 
   // ── Editing ─────────────────────────────────────────────────────
-  setEditingCardId: (id) => set({ editingCardId: id, editingShapeId: null }),
+  setEditingCardId: (id) => set({ editingCardId: id, viewingCardId: null, editingShapeId: null }),
+  setViewingCardId: (id) => set({ viewingCardId: id }),
   setConnectingFromId: (id) => set({ connectingFromId: id }),
 
   // ── History ─────────────────────────────────────────────────────

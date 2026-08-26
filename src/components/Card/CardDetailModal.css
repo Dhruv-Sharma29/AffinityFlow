@@ -1,0 +1,238 @@
+/* ─── Card Detail Modal Overlay ──────────────────────────────────── */
+.card-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 8, 0.5);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cardDetailFadeIn 0.2s ease;
+}
+
+@keyframes cardDetailFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ─── Card Detail Panel ──────────────────────────────────────────── */
+.card-detail-panel {
+  position: relative;
+  width: 440px;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow:
+    0 8px 40px rgba(20, 14, 8, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  animation: cardDetailSlideUp 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes cardDetailSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Color Stripe ───────────────────────────────────────────────── */
+.card-detail-stripe {
+  height: 5px;
+  flex-shrink: 0;
+}
+
+/* ─── Panel Body ─────────────────────────────────────────────────── */
+.card-detail-body {
+  background: #f4ecd8;
+  border-left: 4px solid;
+  padding: 28px 28px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Scrollbar */
+.card-detail-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.card-detail-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.card-detail-body::-webkit-scrollbar-thumb {
+  background: rgba(90, 79, 66, 0.2);
+  border-radius: 10px;
+}
+
+.card-detail-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(90, 79, 66, 0.35);
+}
+
+/* ─── Close Button ───────────────────────────────────────────────── */
+.card-detail-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(224, 211, 174, 0.6);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  color: #5a4f42;
+  z-index: 2;
+}
+
+.card-detail-close:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: #c0392b;
+  color: #c0392b;
+  transform: scale(1.05);
+}
+
+/* ─── Eyebrow ────────────────────────────────────────────────────── */
+.card-detail-eyebrow {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+/* ─── Title ──────────────────────────────────────────────────────── */
+.card-detail-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #241d18;
+  margin-bottom: 16px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.card-detail-title.placeholder {
+  color: #8a7d6f;
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* ─── Divider ────────────────────────────────────────────────────── */
+.card-detail-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(90, 79, 66, 0.15), transparent);
+  margin-bottom: 16px;
+}
+
+/* ─── Body Text ──────────────────────────────────────────────────── */
+.card-detail-text {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #5a4f42;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ─── Empty State ────────────────────────────────────────────────── */
+.card-detail-empty {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 13px;
+  color: #b0a898;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+/* ─── Metadata ───────────────────────────────────────────────────── */
+.card-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(224, 211, 174, 0.5);
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 10px;
+  color: #8a7d6f;
+  letter-spacing: 0.03em;
+}
+
+.card-detail-meta-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #b0a898;
+  flex-shrink: 0;
+}
+
+/* ─── Footer Actions ─────────────────────────────────────────────── */
+.card-detail-footer {
+  background: rgba(244, 236, 216, 0.95);
+  border-top: 1px solid rgba(224, 211, 174, 0.6);
+  padding: 14px 28px;
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.card-detail-edit-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #a3312b;
+  border-radius: 5px;
+  background: #c0392b;
+  color: #f4ecd8;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', -apple-system, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.card-detail-edit-btn:hover {
+  background: #e74c3c;
+  border-color: #c0392b;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(192, 57, 43, 0.25);
+}
+
+.card-detail-edit-shortcut {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+}
+
+.card-detail-close-btn {
+  padding: 10px 20px;
+  border: 1px solid #e0d3ae;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.55);
+  color: #5a4f42;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', -apple-system, sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.card-detail-close-btn:hover {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: #b0a898;
+}
