@@ -8,6 +8,7 @@ import {
   exportToJson,
 } from '../../utils/exportPdf';
 import type { ExportFormat, ExportQuality, ExportOptions } from '../../utils/exportPdf';
+import { IconPdf, IconPng, IconSvgFormat, IconJson, IconExport, IconWarning } from '../Icons/Icons';
 import './ExportModal.css';
 
 interface ExportModalProps {
@@ -15,11 +16,11 @@ interface ExportModalProps {
   onClose: () => void;
 }
 
-const FORMAT_OPTIONS: { id: ExportFormat; label: string; icon: string; desc: string }[] = [
-  { id: 'pdf', label: 'PDF', icon: '📄', desc: 'Best for printing and sharing' },
-  { id: 'png', label: 'PNG', icon: '🖼️', desc: 'High-quality raster image' },
-  { id: 'svg', label: 'SVG', icon: '🔷', desc: 'Scalable vector format' },
-  { id: 'json', label: 'JSON', icon: '{ }', desc: 'Raw data for re-importing' },
+const FORMAT_OPTIONS: { id: ExportFormat; label: string; icon: React.ReactNode; desc: string }[] = [
+  { id: 'pdf', label: 'PDF', icon: <IconPdf size={24} />, desc: 'Best for printing and sharing' },
+  { id: 'png', label: 'PNG', icon: <IconPng size={24} />, desc: 'High-quality raster image' },
+  { id: 'svg', label: 'SVG', icon: <IconSvgFormat size={24} />, desc: 'Scalable vector format' },
+  { id: 'json', label: 'JSON', icon: <IconJson size={24} />, desc: 'Raw data for re-importing' },
 ];
 
 const QUALITY_OPTIONS: { id: ExportQuality; label: string; desc: string }[] = [
@@ -112,7 +113,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
         {/* Header */}
         <div className="export-header">
           <div className="export-header-left">
-            <span className="export-header-icon">📤</span>
+            <span className="export-header-icon"><IconExport size={24} /></span>
             <h2 className="export-title">Export Board</h2>
           </div>
           <button className="export-close" onClick={onClose}>✕</button>
@@ -236,7 +237,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
         {/* Error */}
         {error && (
           <div className="export-error">
-            <span>⚠️</span> {error}
+            <span style={{ display: 'flex' }}><IconWarning size={16} /></span> {error}
           </div>
         )}
 

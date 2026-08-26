@@ -64,7 +64,11 @@
 }
 
 .export-header-icon {
-  font-size: 22px;
+  font-size: 24px;
+  color: #c0392b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .export-title {
@@ -158,8 +162,21 @@
 }
 
 .export-format-icon {
-  font-size: 20px;
-  margin-bottom: 4px;
+  font-size: 24px;
+  margin-bottom: 6px;
+  color: #5a4f42;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.export-format-btn:hover .export-format-icon {
+  color: #241d18;
+}
+
+.export-format-btn.active .export-format-icon {
+  color: #c0392b;
 }
 
 .export-format-label {
