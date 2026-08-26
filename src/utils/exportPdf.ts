@@ -182,14 +182,37 @@ export async function exportToPdf(
 }
 
 // ─── Export to PNG ──────────────────────────────────────────────────
-export function exportToPng(
+export async function exportToPng(
   stage: Konva.Stage,
   cards: Card[],
   shapes: Shape[],
   clusters: Cluster[],
   options: ExportOptions
-): void {
-  const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
+): Promise<void> {
+  let dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
+
+  if (options.backgroundColor && options.backgroundColor !== 'transparent') {
+    dataUrl = await new Promise<string>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(dataUrl);
+          return;
+        }
+        ctx.fillStyle = options.backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   const slug = (options.title || 'affinity-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
   const a = document.createElement('a');

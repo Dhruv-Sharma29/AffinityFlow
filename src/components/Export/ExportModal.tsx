@@ -81,7 +81,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
             await exportToPdf(stage, cards, shapes, clusters, options);
             break;
           case 'png':
-            exportToPng(stage, cards, shapes, clusters, options);
+            await exportToPng(stage, cards, shapes, clusters, options);
             break;
           case 'svg':
             exportToSvg(stage, cards, shapes, clusters, options);
