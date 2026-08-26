@@ -342,9 +342,9 @@ export const InfiniteCanvas: React.FC = () => {
 
   const handleCardDoubleClick = useCallback(
     (id: string) => {
-      setEditingCardId(id);
+      useBoardStore.getState().setViewingCardId(id);
     },
-    [setEditingCardId]
+    []
   );
 
   // ─── Shape interaction handlers ──────────────────────────────────

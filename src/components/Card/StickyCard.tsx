@@ -26,6 +26,13 @@ const BODY_FONT_SIZE = 11.5;
 const TITLE_LINE_HEIGHT = 1.3;
 const BODY_LINE_HEIGHT = 1.5;
 
+// Fixed card height — all cards render at this height regardless of content
+const FIXED_CARD_HEIGHT = 140;
+
+// Maximum lines for text truncation
+const MAX_TITLE_LINES = 2;
+const MAX_BODY_LINES = 3;
+
 export const StickyCard: React.FC<StickyCardProps> = ({
   card,
   isSelected,
@@ -46,32 +53,8 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   const displayBody = card.body || '';
   const displayEyebrow = card.eyebrow || '';
 
-  // Calculate dynamic height based on content
-  const contentHeight = useMemo(() => {
-    let h = CARD_PADDING;
-    const availableW = Math.max(20, card.width - CARD_PADDING * 2);
-
-    if (displayEyebrow) {
-      h += EYEBROW_FONT_SIZE * 1.2 + 6;
-    }
-
-    // Title height calculation
-    const titleCharsPerLine = Math.max(1, Math.floor(availableW / (TITLE_FONT_SIZE * 0.52)));
-    const titleLines = Math.max(1, Math.ceil(displayTitle.length / titleCharsPerLine));
-    const titleH = titleLines * TITLE_FONT_SIZE * TITLE_LINE_HEIGHT;
-    h += titleH + 8;
-
-    // Body height calculation
-    if (displayBody) {
-      const bodyCharsPerLine = Math.max(1, Math.floor(availableW / (BODY_FONT_SIZE * 0.48)));
-      const bodyLines = Math.max(1, Math.ceil(displayBody.length / bodyCharsPerLine));
-      const bodyH = bodyLines * BODY_FONT_SIZE * BODY_LINE_HEIGHT;
-      h += bodyH + 6;
-    }
-
-    h += CARD_PADDING;
-    return Math.max(h, 85);
-  }, [displayTitle, displayBody, displayEyebrow, card.width]);
+  // Use fixed card height
+  const cardHeight = FIXED_CARD_HEIGHT;
 
   // Build text Y positions
   let textY = CARD_PADDING;
@@ -81,10 +64,29 @@ export const StickyCard: React.FC<StickyCardProps> = ({
   }
   const titleY = textY;
   const availableW = Math.max(20, card.width - CARD_PADDING * 2);
-  const titleCharsPerLine = Math.max(1, Math.floor(availableW / (TITLE_FONT_SIZE * 0.52)));
-  const titleEstLines = Math.max(1, Math.ceil(displayTitle.length / titleCharsPerLine));
-  const titleH = titleEstLines * TITLE_FONT_SIZE * TITLE_LINE_HEIGHT;
-  const bodyY = titleY + titleH + 8;
+
+  // Capped title height (max 2 lines)
+  const titleMaxH = MAX_TITLE_LINES * TITLE_FONT_SIZE * TITLE_LINE_HEIGHT;
+  const bodyY = titleY + titleMaxH + 8;
+
+  // Available height for body text (remaining space within fixed card)
+  const bodyMaxH = Math.max(0, cardHeight - bodyY - CARD_PADDING);
+
+  // Check if content might be truncated (rough heuristic)
+  const isTruncated = useMemo(() => {
+    const titleCharsPerLine = Math.max(1, Math.floor(availableW / (TITLE_FONT_SIZE * 0.52)));
+    const titleLines = Math.ceil(displayTitle.length / titleCharsPerLine);
+
+    if (titleLines > MAX_TITLE_LINES) return true;
+
+    if (displayBody) {
+      const bodyCharsPerLine = Math.max(1, Math.floor(availableW / (BODY_FONT_SIZE * 0.48)));
+      const bodyLines = Math.ceil(displayBody.length / bodyCharsPerLine);
+      if (bodyLines > MAX_BODY_LINES) return true;
+    }
+
+    return false;
+  }, [displayTitle, displayBody, availableW]);
 
   // Pin positions (top center)
   const pinX = card.width / 2;
@@ -230,7 +232,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
         x={3}
         y={6}
         width={card.width}
-        height={contentHeight}
+        height={cardHeight}
         cornerRadius={CORNER_RADIUS}
         fill="rgba(20, 10, 5, 0.22)"
         shadowColor="rgba(20, 10, 5, 0.45)"
@@ -241,15 +243,101 @@ export const StickyCard: React.FC<StickyCardProps> = ({
         listening={false}
       />
 
-      {/* Card body */}
-      <Rect
-        width={card.width}
-        height={contentHeight}
-        fill={colors.bg}
-        stroke={isSelected ? '#c0392b' : colors.border}
-        strokeWidth={isSelected ? 2 : 1}
-        cornerRadius={CORNER_RADIUS}
-      />
+      {/* Card body — uses clipping to prevent text overflow */}
+      <Group
+        clipX={0}
+        clipY={0}
+        clipWidth={card.width}
+        clipHeight={cardHeight}
+      >
+        <Rect
+          width={card.width}
+          height={cardHeight}
+          fill={colors.bg}
+          stroke={isSelected ? '#c0392b' : colors.border}
+          strokeWidth={isSelected ? 2 : 1}
+          cornerRadius={CORNER_RADIUS}
+        />
+
+        {/* Color stripe on left edge */}
+        <Rect
+          x={0}
+          y={0}
+          width={4}
+          height={cardHeight}
+          fill={colors.pin}
+          cornerRadius={[CORNER_RADIUS, 0, 0, CORNER_RADIUS]}
+          listening={false}
+        />
+
+        {/* Eyebrow text */}
+        {displayEyebrow && (
+          <Text
+            x={CARD_PADDING}
+            y={eyebrowY}
+            width={card.width - CARD_PADDING * 2}
+            text={displayEyebrow.toUpperCase()}
+            fontFamily="Georgia, 'Times New Roman', serif"
+            fontSize={EYEBROW_FONT_SIZE}
+            fontStyle="bold"
+            letterSpacing={1.4}
+            fill={colors.eyebrow}
+            wrap="char"
+            ellipsis={true}
+            height={EYEBROW_FONT_SIZE * 1.2}
+            listening={false}
+          />
+        )}
+
+        {/* Title — capped at MAX_TITLE_LINES */}
+        <Text
+          x={CARD_PADDING}
+          y={titleY}
+          width={card.width - CARD_PADDING * 2}
+          height={titleMaxH}
+          text={displayTitle}
+          fontFamily="Georgia, 'Times New Roman', serif"
+          fontSize={TITLE_FONT_SIZE}
+          fontStyle={card.title ? 'bold' : 'normal'}
+          lineHeight={TITLE_LINE_HEIGHT}
+          fill={card.title ? '#241d18' : '#8a7d6f'}
+          wrap="char"
+          ellipsis={true}
+          listening={false}
+        />
+
+        {/* Body text — capped to fit remaining space */}
+        {displayBody && bodyMaxH > 0 && (
+          <Text
+            x={CARD_PADDING}
+            y={bodyY}
+            width={card.width - CARD_PADDING * 2}
+            height={bodyMaxH}
+            text={displayBody}
+            fontFamily="'Courier New', monospace"
+            fontSize={BODY_FONT_SIZE}
+            lineHeight={BODY_LINE_HEIGHT}
+            fill="#5a4f42"
+            wrap="char"
+            ellipsis={true}
+            listening={false}
+          />
+        )}
+
+        {/* Truncation fade gradient at bottom */}
+        {isTruncated && (
+          <Rect
+            x={0}
+            y={cardHeight - 22}
+            width={card.width}
+            height={22}
+            fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+            fillLinearGradientEndPoint={{ x: 0, y: 22 }}
+            fillLinearGradientColorStops={[0, `${colors.bg}00`, 0.6, `${colors.bg}cc`, 1, colors.bg]}
+            listening={false}
+          />
+        )}
+      </Group>
 
       {/* Selection glow */}
       {isSelected && (
@@ -257,7 +345,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
           x={-3}
           y={-3}
           width={card.width + 6}
-          height={contentHeight + 6}
+          height={cardHeight + 6}
           cornerRadius={4}
           stroke="#c0392b"
           strokeWidth={2}
@@ -272,7 +360,7 @@ export const StickyCard: React.FC<StickyCardProps> = ({
           x={-4}
           y={-4}
           width={card.width + 8}
-          height={contentHeight + 8}
+          height={cardHeight + 8}
           cornerRadius={5}
           stroke="#2f4a63"
           strokeWidth={2.5}
@@ -287,23 +375,12 @@ export const StickyCard: React.FC<StickyCardProps> = ({
           x={-2}
           y={-2}
           width={card.width + 4}
-          height={contentHeight + 4}
+          height={cardHeight + 4}
           cornerRadius={3}
           fill="rgba(47, 74, 99, 0.06)"
           listening={false}
         />
       )}
-
-      {/* Color stripe on left edge */}
-      <Rect
-        x={0}
-        y={0}
-        width={4}
-        height={contentHeight}
-        fill={colors.pin}
-        cornerRadius={[CORNER_RADIUS, 0, 0, CORNER_RADIUS]}
-        listening={false}
-      />
 
       {/* Push pin shadow */}
       <Circle
@@ -335,55 +412,6 @@ export const StickyCard: React.FC<StickyCardProps> = ({
         fill="rgba(255,255,255,0.35)"
         listening={false}
       />
-
-      {/* Eyebrow text */}
-      {displayEyebrow && (
-        <Text
-          x={CARD_PADDING}
-          y={eyebrowY}
-          width={card.width - CARD_PADDING * 2}
-          text={displayEyebrow.toUpperCase()}
-          fontFamily="Georgia, 'Times New Roman', serif"
-          fontSize={EYEBROW_FONT_SIZE}
-          fontStyle="bold"
-          letterSpacing={1.4}
-          fill={colors.eyebrow}
-          wrap="char"
-          ellipsis={true}
-          listening={false}
-        />
-      )}
-
-      {/* Title */}
-      <Text
-        x={CARD_PADDING}
-        y={titleY}
-        width={card.width - CARD_PADDING * 2}
-        text={displayTitle}
-        fontFamily="Georgia, 'Times New Roman', serif"
-        fontSize={TITLE_FONT_SIZE}
-        fontStyle={card.title ? 'bold' : 'normal'}
-        lineHeight={TITLE_LINE_HEIGHT}
-        fill={card.title ? '#241d18' : '#8a7d6f'}
-        wrap="char"
-        listening={false}
-      />
-
-      {/* Body text */}
-      {displayBody && (
-        <Text
-          x={CARD_PADDING}
-          y={bodyY}
-          width={card.width - CARD_PADDING * 2}
-          text={displayBody}
-          fontFamily="'Courier New', monospace"
-          fontSize={BODY_FONT_SIZE}
-          lineHeight={BODY_LINE_HEIGHT}
-          fill="#5a4f42"
-          wrap="char"
-          listening={false}
-        />
-      )}
 
       {/* Tape decoration (subtle strip at top) */}
       <Line
