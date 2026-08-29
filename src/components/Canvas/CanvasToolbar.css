@@ -1,16 +1,19 @@
 /* ─── Canvas Toolbar ─────────────────────────────────────────────── */
 .canvas-toolbar {
   position: fixed;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: auto;
+  top: auto;
+  transform: none;
   z-index: 200;
 
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 2px;
-  padding: 6px;
+  padding: 4px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  scrollbar-width: none;
 
   background: rgba(30, 24, 20, 0.92);
   backdrop-filter: blur(20px);
@@ -25,30 +28,39 @@
   animation: toolbarAppear 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+.canvas-toolbar--left { left: 14px; top: 50%; transform: translateY(-50%); flex-direction: column; max-height: calc(100vh - 24px); overflow-y: auto; overflow-x: visible; }
+.canvas-toolbar--right { right: 14px; top: 50%; transform: translateY(-50%); flex-direction: column; max-height: calc(100vh - 24px); overflow-y: auto; overflow-x: visible; }
+.canvas-toolbar--top { top: 14px; left: 50%; transform: translateX(-50%); flex-direction: row; max-width: calc(100vw - 24px); overflow-x: auto; overflow-y: visible; }
+.canvas-toolbar--bottom { bottom: 14px; left: 50%; transform: translateX(-50%); flex-direction: row; max-width: calc(100vw - 24px); overflow-x: auto; overflow-y: visible; }
+
+.canvas-toolbar::-webkit-scrollbar { display: none; }
+
 @keyframes toolbarAppear {
-  from {
-    opacity: 0;
-    transform: translateY(-50%) translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-50%) translateX(0);
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+
+.toolbar-drag-handle { width: 18px; height: 28px; display: grid; grid-template-columns: repeat(2, 3px); grid-auto-rows: 3px; align-content: center; justify-content: center; gap: 3px; flex: 0 0 auto; border-radius: 5px; cursor: grab; opacity: .55; touch-action: none; user-select: none; }
+.toolbar-drag-handle:active { cursor: grabbing; }
+.toolbar-drag-handle:hover { background: rgba(255, 255, 255, .08); opacity: 1; }
+.toolbar-drag-handle span { width: 3px; height: 3px; border-radius: 50%; background: #f4ecd8; }
+.canvas-toolbar--top .toolbar-drag-handle, .canvas-toolbar--bottom .toolbar-drag-handle { width: 22px; height: 20px; grid-template-columns: repeat(3, 3px); grid-auto-rows: 3px; }
 
 /* ─── Toolbar Section ───────────────────────────────────────────── */
 .toolbar-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 0;
 }
+.canvas-toolbar--left .toolbar-section, .canvas-toolbar--right .toolbar-section { flex-direction: column; }
+.canvas-toolbar--top .toolbar-section, .canvas-toolbar--bottom .toolbar-section { flex-direction: row; }
 
 /* ─── Toolbar Button ────────────────────────────────────────────── */
 .toolbar-btn {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -82,6 +94,8 @@
   pointer-events: none;
 }
 
+.toolbar-image-input { display: none; }
+
 /* ─── Tooltip ───────────────────────────────────────────────────── */
 .toolbar-tooltip {
   position: absolute;
@@ -112,6 +126,10 @@
 .toolbar-btn:hover .toolbar-tooltip {
   opacity: 1;
 }
+
+.canvas-toolbar--right .toolbar-tooltip { left: auto; right: calc(100% + 10px); }
+.canvas-toolbar--top .toolbar-tooltip { left: 50%; top: calc(100% + 8px); transform: translateX(-50%); }
+.canvas-toolbar--bottom .toolbar-tooltip { left: 50%; top: auto; bottom: calc(100% + 8px); transform: translateX(-50%); }
 
 .toolbar-tooltip kbd {
   display: inline-block;
@@ -146,8 +164,9 @@
   width: 20px;
   height: 1px;
   background: rgba(255, 255, 255, 0.07);
-  margin: 3px 0;
+  margin: 2px 0;
 }
+.canvas-toolbar--top .toolbar-divider, .canvas-toolbar--bottom .toolbar-divider { width: 1px; height: 20px; margin: 0 2px; }
 
 /* ─── Card Count Badge ──────────────────────────────────────────── */
 .toolbar-badge {
@@ -195,6 +214,17 @@
   flex-direction: column;
   gap: 6px;
   animation: flyoutSlideIn 0.15s ease-out;
+}
+.canvas-toolbar--right .toolbar-shape-flyout { left: auto; right: calc(100% + 12px); }
+.canvas-toolbar--top .toolbar-shape-flyout { left: 0; top: calc(100% + 8px); }
+.canvas-toolbar--bottom .toolbar-shape-flyout { left: 0; top: auto; bottom: calc(100% + 8px); }
+
+/* Keep controls compact on small screens without overriding the user's chosen dock. */
+@media (max-height: 700px), (max-width: 720px) {
+  .canvas-toolbar {
+    max-width: calc(100vw - 20px);
+  }
+  .toolbar-btn { width: 30px; height: 30px; }
 }
 
 @keyframes flyoutSlideIn {
@@ -248,4 +278,3 @@
   border-color: rgba(192, 57, 43, 0.8);
   color: #ffffff;
 }
-

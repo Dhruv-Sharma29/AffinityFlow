@@ -9,7 +9,7 @@ const MAP_HEIGHT = 140;
 const PADDING = 200;
 
 export const Minimap: React.FC = () => {
-  const { cards, shapes, clusters, viewport, setViewport } = useBoardStore();
+  const { cards, shapes, clusters, textItems, voteDots, images, viewport, setViewport } = useBoardStore();
   const [isOpen, setIsOpen] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDragging = useRef(false);
@@ -48,6 +48,27 @@ export const Minimap: React.FC = () => {
       maxY = Math.max(maxY, cl.y + cl.height);
     });
 
+    textItems.forEach((text) => {
+      minX = Math.min(minX, text.x);
+      minY = Math.min(minY, text.y);
+      maxX = Math.max(maxX, text.x + text.width);
+      maxY = Math.max(maxY, text.y + text.fontSize * 2);
+    });
+
+    voteDots.forEach((dot) => {
+      minX = Math.min(minX, dot.x - 12);
+      minY = Math.min(minY, dot.y - 12);
+      maxX = Math.max(maxX, dot.x + 12);
+      maxY = Math.max(maxY, dot.y + 12);
+    });
+
+    images.forEach((image) => {
+      minX = Math.min(minX, image.x);
+      minY = Math.min(minY, image.y);
+      maxX = Math.max(maxX, image.x + image.width);
+      maxY = Math.max(maxY, image.y + image.height);
+    });
+
     minX -= PADDING;
     minY -= PADDING;
     maxX += PADDING;
@@ -57,7 +78,7 @@ export const Minimap: React.FC = () => {
     const height = Math.max(100, maxY - minY);
 
     return { minX, minY, width, height, viewX, viewY, viewW, viewH };
-  }, [cards, shapes, clusters, viewport]);
+  }, [cards, shapes, clusters, textItems, voteDots, images, viewport]);
 
   // Render miniature representation to canvas
   useEffect(() => {
@@ -132,7 +153,33 @@ export const Minimap: React.FC = () => {
       ctx.arc(mx + mw / 2, my + 1, 1.2, 0, Math.PI * 2);
       ctx.fill();
     });
-  }, [cards, shapes, clusters, viewport, isOpen, computeWorldBounds]);
+
+    // Draw standalone text and voting dots so every board item is represented.
+    textItems.forEach((text) => {
+      const mx = toMapX(text.x);
+      const my = toMapY(text.y);
+      ctx.fillStyle = text.color;
+      ctx.fillRect(mx, my, Math.max(3, text.width * scale), Math.max(2, text.fontSize * scale));
+    });
+
+    voteDots.forEach((dot) => {
+      ctx.fillStyle = dot.color === 'yellow' ? '#e0ad32' : dot.color === 'green' ? '#4eaa6a' : dot.color === 'blue' ? '#4d83c4' : dot.color === 'purple' ? '#8960b5' : '#e05252';
+      ctx.beginPath();
+      ctx.arc(toMapX(dot.x), toMapY(dot.y), Math.max(2, 5 * scale), 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    images.forEach((image) => {
+      const mx = toMapX(image.x);
+      const my = toMapY(image.y);
+      const mw = Math.max(3, image.width * scale);
+      const mh = Math.max(3, image.height * scale);
+      ctx.fillStyle = '#9bb7cc';
+      ctx.fillRect(mx, my, mw, mh);
+      ctx.strokeStyle = '#527a96';
+      ctx.strokeRect(mx, my, mw, mh);
+    });
+  }, [cards, shapes, clusters, textItems, voteDots, images, viewport, isOpen, computeWorldBounds]);
 
   // Viewport rect position on minimap
   const bounds = computeWorldBounds();

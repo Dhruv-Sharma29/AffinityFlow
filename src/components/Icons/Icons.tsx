@@ -1,5 +1,5 @@
 /**
- * Clean, lightweight SVG icons for the AffinityFlow toolbar.
+ * Clean, lightweight SVG icons for the VisioSpace toolbar.
  * All icons are 24x24 with consistent 1.5px stroke weight.
  */
 
@@ -103,6 +103,14 @@ export const IconImport = ({ size = 20, color = 'currentColor' }: IconProps) => 
   </svg>
 );
 
+export const IconImage = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <path d="M21 15l-5-5L5 21" />
+  </svg>
+);
+
 export const IconTrash = ({ size = 20, color = 'currentColor' }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="3 6 5 6 21 6"/>
@@ -147,6 +155,14 @@ export const IconText = ({ size = 20, color = 'currentColor' }: IconProps) => (
     <polyline points="4 7 4 4 20 4 20 7"/>
     <line x1="9" y1="20" x2="15" y2="20"/>
     <line x1="12" y1="4" x2="12" y2="20"/>
+  </svg>
+);
+
+export const IconVoteDot = ({ size = 20, color = 'currentColor' }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="7" />
+    <circle cx="12" cy="12" r="2.5" fill={color} stroke="none" />
+    <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
   </svg>
 );
 
@@ -394,5 +410,3 @@ export const IconWarning = ({ size = 20, color = 'currentColor' }: IconProps) =>
     <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
-
-

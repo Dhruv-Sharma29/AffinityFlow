@@ -14,6 +14,9 @@ import { FloatingFormatBar } from './components/Card/FloatingFormatBar';
 import { ShapeFormatBar } from './components/Shape/ShapeFormatBar';
 import { ClusterFormatBar } from './components/Cluster/ClusterFormatBar';
 import { Minimap } from './components/Minimap/Minimap';
+import { TextEditor } from './components/Text/TextEditor';
+import { ImportModal } from './components/Import/ImportModal';
+import { ImageFormatBar } from './components/Image/ImageFormatBar';
 import { useBoardStore } from './store/boardStore';
 import type { Tool } from './types/board';
 import './App.css';
@@ -26,6 +29,8 @@ const TOOL_SHORTCUTS: Record<string, Tool> = {
   c: 'connector',
   g: 'cluster',
   h: 'hand',
+  t: 'text',
+  d: 'vote',
 };
 
 function App() {
@@ -41,16 +46,19 @@ function App() {
     editingShapeId,
     editingConnectorId,
     editingClusterId,
+    editingTextId,
     confirmDeleteCluster,
     selectedIds,
     clusters,
     activeTool,
     connectingFromId,
     setConnectingFromId,
+    toolbarDock,
   } = useBoardStore();
 
   const [exportOpen, setExportOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // ─── Keyboard shortcuts ────────────────────────────────────────
   const handleKeyDown = useCallback(
@@ -62,9 +70,11 @@ function App() {
         editingShapeId ||
         editingConnectorId ||
         editingClusterId ||
+        editingTextId ||
         confirmDeleteCluster?.isOpen ||
         exportOpen ||
-        templatesOpen
+        templatesOpen ||
+        importOpen
       ) {
         return;
       }
@@ -186,6 +196,7 @@ function App() {
       editingShapeId,
       editingConnectorId,
       editingClusterId,
+      editingTextId,
       confirmDeleteCluster,
       selectedIds,
       clusters,
@@ -200,18 +211,19 @@ function App() {
       setConnectingFromId,
       exportOpen,
       templatesOpen,
+      importOpen,
     ]
   );
 
   const handleKeyUp = useCallback(
     (e: KeyboardEvent) => {
-      if (editingCardId || editingShapeId || editingClusterId) return;
+      if (editingCardId || editingTextId || editingShapeId || editingClusterId) return;
       // Release space → back to select
       if (e.key === ' ' && activeTool === 'hand') {
         setActiveTool('select');
       }
     },
-    [activeTool, setActiveTool, editingCardId, editingShapeId, editingClusterId]
+    [activeTool, setActiveTool, editingCardId, editingTextId, editingShapeId, editingClusterId]
   );
 
   useEffect(() => {
@@ -224,16 +236,13 @@ function App() {
   }, [handleKeyDown, handleKeyUp]);
 
   return (
-    <div className="app">
+    <div className={`app app-toolbar-${toolbarDock}`}>
       {/* Watermark / title */}
       <div className="app-watermark">
         <div className="app-watermark-logo">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15.5 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V8.5L15.5 3z"/>
-            <polyline points="14 3 14 9 21 9"/>
-          </svg>
+          <img src="/visiospace-mark.svg" alt="VisioSpace logo" />
         </div>
-        <span className="app-watermark-title">AffinityFlow</span>
+        <span className="app-watermark-title">VisioSpace</span>
       </div>
 
       {/* Hint bar (contextual) */}
@@ -264,6 +273,8 @@ function App() {
         {activeTool === 'hand' && (
           <span>Drag to pan · Release <kbd>Space</kbd> to return</span>
         )}
+        {activeTool === 'text' && <span>Click to place text · <kbd>Esc</kbd> cancel</span>}
+        {activeTool === 'vote' && <span>Click to place a voting dot · <kbd>D</kbd> vote tool</span>}
       </div>
 
       {/* Canvas */}
@@ -273,6 +284,7 @@ function App() {
       <CanvasToolbar
         onOpenExport={() => setExportOpen(true)}
         onOpenTemplates={() => setTemplatesOpen(true)}
+        onOpenImport={() => setImportOpen(true)}
       />
 
       {/* Card Detail Modal (full content view on double-click) */}
@@ -280,6 +292,7 @@ function App() {
 
       {/* Card Editor */}
       <CardEditor />
+      <TextEditor />
 
       {/* Shape Text Editor */}
       <ShapeTextEditor />
@@ -295,6 +308,9 @@ function App() {
 
       {/* Floating Format Bar for selected shape */}
       <ShapeFormatBar />
+
+      {/* Shape options for selected images */}
+      <ImageFormatBar />
 
       {/* Floating Format Bar for selected cluster/group */}
       <ClusterFormatBar />
@@ -313,6 +329,7 @@ function App() {
 
       {/* Sensemaking Templates Modal */}
       <TemplateModal isOpen={templatesOpen} onClose={() => setTemplatesOpen(false)} />
+      <ImportModal isOpen={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }

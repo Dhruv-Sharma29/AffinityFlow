@@ -1,5 +1,5 @@
 import type Konva from 'konva';
-import type { Card, Shape, Cluster } from '../types/board';
+import type { Card, Shape, Cluster, TextItem, VoteDot, ImageItem } from '../types/board';
 
 // ─── Types ──────────────────────────────────────────────────────────
 export type ExportFormat = 'pdf' | 'png' | 'svg' | 'json';
@@ -30,9 +30,9 @@ function computeContentBounds(
   cards: Card[],
   shapes: Shape[] = [],
   clusters: Cluster[] = [],
-  padding: number = 60
+  padding: number = 60, textItems: TextItem[] = [], voteDots: VoteDot[] = [], images: ImageItem[] = []
 ): { x: number; y: number; width: number; height: number } {
-  if (cards.length === 0 && shapes.length === 0 && clusters.length === 0) {
+  if (cards.length === 0 && shapes.length === 0 && clusters.length === 0 && textItems.length === 0 && voteDots.length === 0 && images.length === 0) {
     return { x: 0, y: 0, width: 800, height: 600 };
   }
 
@@ -40,6 +40,9 @@ function computeContentBounds(
     ...cards.map(c => ({ x: c.x, y: c.y - 20, w: c.width, h: c.height + 20 })),
     ...shapes.map(s => ({ x: s.x, y: s.y, w: s.width, h: s.height })),
     ...clusters.map(c => ({ x: c.x, y: c.y - 30, w: c.width, h: c.height + 30 })),
+    ...textItems.map(t => ({ x: t.x, y: t.y, w: t.width, h: t.fontSize * 2 })),
+    ...voteDots.map(d => ({ x: d.x - 12, y: d.y - 12, w: 24, h: 24 })),
+    ...images.map(image => ({ x: image.x, y: image.y, w: image.width, h: image.height })),
   ];
 
   const minX = Math.min(...items.map(i => i.x)) - padding;
@@ -65,7 +68,7 @@ function captureFullBoard(
   cards: Card[],
   shapes: Shape[],
   clusters: Cluster[],
-  options: ExportOptions
+  options: ExportOptions, textItems: TextItem[] = [], voteDots: VoteDot[] = [], images: ImageItem[] = []
 ): string {
   // Save current viewport
   const origX = stage.x();
@@ -75,7 +78,7 @@ function captureFullBoard(
   const origWidth = stage.width();
   const origHeight = stage.height();
 
-  const bounds = computeContentBounds(cards, shapes, clusters, options.padding);
+  const bounds = computeContentBounds(cards, shapes, clusters, options.padding, textItems, voteDots, images);
   const pixelRatio = QUALITY_MAP[options.quality];
 
   // Temporarily adjust stage to frame the entire board
@@ -110,12 +113,12 @@ export async function exportToPdf(
   cards: Card[],
   shapes: Shape[],
   clusters: Cluster[],
-  options: ExportOptions
+  options: ExportOptions, textItems: TextItem[] = [], voteDots: VoteDot[] = [], images: ImageItem[] = []
 ): Promise<void> {
   try {
     const { jsPDF } = await import('jspdf');
-    const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
-    const bounds = computeContentBounds(cards, shapes, clusters, options.padding);
+    const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options, textItems, voteDots, images);
+    const bounds = computeContentBounds(cards, shapes, clusters, options.padding, textItems, voteDots, images);
 
     // Determine page size — scale content to fit A4-ish proportions if very large
     const maxPageDim = 3000;
@@ -152,7 +155,7 @@ export async function exportToPdf(
       // Title text
       pdf.setFontSize(18);
       pdf.setTextColor('#f4ecd8');
-      pdf.text(options.title || 'Affinity Board', 24, 28);
+      pdf.text(options.title || 'VisioSpace Board', 24, 28);
 
       // Timestamp
       if (options.includeTimestamp) {
@@ -164,7 +167,7 @@ export async function exportToPdf(
       // Total items count
       pdf.setFontSize(10);
       pdf.setTextColor('#8a7d6f');
-      const totalItems = cards.length + shapes.length;
+      const totalItems = cards.length + shapes.length + textItems.length + voteDots.length + images.length;
       const countText = `${totalItems} item${totalItems !== 1 ? 's' : ''}`;
       pdf.text(countText, pageW - 24 - pdf.getTextWidth(countText), 28);
     }
@@ -173,7 +176,7 @@ export async function exportToPdf(
     pdf.addImage(dataUrl, 'PNG', 0, headerH, pageW, pageH);
 
     // Save
-    const slug = (options.title || 'affinity-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const slug = (options.title || 'visiospace-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
     pdf.save(`${slug}-${new Date().toISOString().slice(0, 10)}.pdf`);
   } catch (error) {
     console.error('PDF export failed:', error);
@@ -187,9 +190,9 @@ export async function exportToPng(
   cards: Card[],
   shapes: Shape[],
   clusters: Cluster[],
-  options: ExportOptions
+  options: ExportOptions, textItems: TextItem[] = [], voteDots: VoteDot[] = [], images: ImageItem[] = []
 ): Promise<void> {
-  let dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
+  let dataUrl = captureFullBoard(stage, cards, shapes, clusters, options, textItems, voteDots, images);
 
   if (options.backgroundColor && options.backgroundColor !== 'transparent') {
     dataUrl = await new Promise<string>((resolve) => {
@@ -213,7 +216,7 @@ export async function exportToPng(
     });
   }
 
-  const slug = (options.title || 'affinity-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const slug = (options.title || 'visiospace-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
   const a = document.createElement('a');
   a.href = dataUrl;
@@ -229,24 +232,24 @@ export function exportToSvg(
   cards: Card[],
   shapes: Shape[],
   clusters: Cluster[],
-  options: ExportOptions
+  options: ExportOptions, textItems: TextItem[] = [], voteDots: VoteDot[] = [], images: ImageItem[] = []
 ): void {
-  const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options);
-  const bounds = computeContentBounds(cards, shapes, clusters, options.padding);
+  const dataUrl = captureFullBoard(stage, cards, shapes, clusters, options, textItems, voteDots, images);
+  const bounds = computeContentBounds(cards, shapes, clusters, options.padding, textItems, voteDots, images);
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" 
      xmlns:xlink="http://www.w3.org/1999/xlink"
      width="${bounds.width}" height="${bounds.height}" 
      viewBox="0 0 ${bounds.width} ${bounds.height}">
-  <title>${options.title || 'Affinity Board'}</title>
+  <title>${options.title || 'VisioSpace Board'}</title>
   <rect width="100%" height="100%" fill="${options.backgroundColor}"/>
   <image xlink:href="${dataUrl}" width="${bounds.width}" height="${bounds.height}"/>
 </svg>`;
 
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const slug = (options.title || 'affinity-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const slug = (options.title || 'visiospace-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
   const a = document.createElement('a');
   a.href = url;
@@ -263,7 +266,7 @@ export function exportToJson(
   shapes: Shape[],
   connectors: any[],
   clusters: Cluster[],
-  options: ExportOptions
+  options: ExportOptions, textItems: TextItem[] = [], voteDots: VoteDot[] = [], images: ImageItem[] = []
 ): void {
   const data = {
     title: options.title,
@@ -272,11 +275,12 @@ export function exportToJson(
     shapes,
     connectors,
     clusters,
+    textItems, voteDots, images,
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const slug = (options.title || 'affinity-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const slug = (options.title || 'visiospace-board').toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
   const a = document.createElement('a');
   a.href = url;
@@ -286,4 +290,3 @@ export function exportToJson(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-

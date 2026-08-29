@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBoardStore } from '../../store/boardStore';
-import type { Tool, ShapeType } from '../../types/board';
+import type { Tool, ShapeType, ToolbarDock } from '../../types/board';
 import {
   IconCursor, IconStickyNote, IconLink, IconGroup, IconHand,
   IconZoomIn, IconZoomOut, IconZoomFit,
@@ -8,6 +8,8 @@ import {
   IconExport, IconImport,
   IconTemplate,
   IconSoundOn, IconSoundOff,
+  IconText, IconVoteDot,
+  IconImage,
 } from '../Icons/Icons';
 import { getAllShapeDefinitions, getShapeDefinition } from '../Shape/shapeRegistry';
 import './CanvasToolbar.css';
@@ -22,9 +24,10 @@ interface ToolConfig {
 interface CanvasToolbarProps {
   onOpenExport: () => void;
   onOpenTemplates: () => void;
+  onOpenImport: () => void;
 }
 
-export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOpenTemplates }) => {
+export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOpenTemplates, onOpenImport }) => {
   const {
     activeTool, setActiveTool,
     activeShapeType, setActiveShapeType,
@@ -32,14 +35,103 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOp
     viewport,
     undo, redo,
     history, historyIndex,
-    cards, shapes,
+    cards, shapes, textItems, voteDots, images,
     selectedIds,
     groupSelected,
-    importFromJSON,
     soundEnabled, toggleSound,
+    toolbarDock, toolbarOffset, setToolbarPosition,
+    addImage, setSelectedIds,
   } = useBoardStore();
 
   const [shapeMenuOpen, setShapeMenuOpen] = useState(false);
+  const dragCleanup = useRef<(() => void) | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  // A saved percentage can become invalid after a resize or when a tall
+  // toolbar is restored on a short screen. Clamp its center using the actual
+  // rendered size so the toolbar always remains reachable.
+  const clampToolbarPosition = useCallback(() => {
+    const toolbar = toolbarRef.current;
+    if (!toolbar) return;
+    const isVertical = toolbarDock === 'left' || toolbarDock === 'right';
+    const viewportSize = isVertical ? window.innerHeight : window.innerWidth;
+    const toolbarSize = isVertical ? toolbar.offsetHeight : toolbar.offsetWidth;
+    const desiredCenter = viewportSize * toolbarOffset / 100;
+    const minimumCenter = toolbarSize / 2 + 12;
+    const maximumCenter = viewportSize - toolbarSize / 2 - 12;
+    const center = minimumCenter > maximumCenter
+      ? viewportSize / 2
+      : Math.max(minimumCenter, Math.min(maximumCenter, desiredCenter));
+    const safeOffset = Math.max(10, Math.min(90, center / viewportSize * 100));
+    if (Math.abs(safeOffset - toolbarOffset) > 0.5) setToolbarPosition(toolbarDock, safeOffset);
+  }, [setToolbarPosition, toolbarDock, toolbarOffset]);
+
+  useEffect(() => {
+    clampToolbarPosition();
+    window.addEventListener('resize', clampToolbarPosition);
+    return () => window.removeEventListener('resize', clampToolbarPosition);
+  }, [clampToolbarPosition]);
+
+  useEffect(() => () => dragCleanup.current?.(), []);
+
+  const handleDockDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const getPosition = (clientX: number, clientY: number): { dock: ToolbarDock; offset: number } => {
+      const distances: Array<[ToolbarDock, number]> = [
+        ['left', clientX], ['right', window.innerWidth - clientX], ['top', clientY], ['bottom', window.innerHeight - clientY],
+      ];
+      const dock = distances.reduce((closest, current) => current[1] < closest[1] ? current : closest)[0];
+      const axis = dock === 'left' || dock === 'right' ? clientY / window.innerHeight : clientX / window.innerWidth;
+      return { dock, offset: Math.max(10, Math.min(90, axis * 100)) };
+    };
+    const move = (moveEvent: PointerEvent) => {
+      const position = getPosition(moveEvent.clientX, moveEvent.clientY);
+      setToolbarPosition(position.dock, position.offset);
+    };
+    const end = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      window.removeEventListener('pointercancel', end);
+      window.removeEventListener('blur', end);
+      dragCleanup.current = null;
+    };
+    dragCleanup.current?.();
+    dragCleanup.current = end;
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    window.addEventListener('blur', end);
+  };
+
+  const handleImageFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) {
+      window.alert('Please choose an image smaller than 10 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') return;
+      const image = new window.Image();
+      image.onload = () => {
+        const maxWidth = 360;
+        const maxHeight = 260;
+        const ratio = Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight, 1);
+        const width = Math.max(80, Math.round(image.naturalWidth * ratio));
+        const height = Math.max(80, Math.round(image.naturalHeight * ratio));
+        const x = (window.innerWidth / 2 - viewport.x) / viewport.scale - width / 2;
+        const y = (window.innerHeight / 2 - viewport.y) / viewport.scale - height / 2;
+        const id = addImage(reader.result as string, file.name, x, y, width, height);
+        if (id) setSelectedIds([id]);
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const zoomPercent = Math.round(viewport.scale * 100);
   const canUndo = historyIndex >= 0;
@@ -55,6 +147,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOp
     { id: 'shape', icon: <CurrentShapeIcon />, label: `Shape (${currentShapeDef.label})`, shortcut: 'S' },
     { id: 'connector', icon: <IconLink />, label: 'Connect', shortcut: 'C' },
     { id: 'cluster', icon: <IconGroup />, label: 'Group', shortcut: 'G' },
+    { id: 'text', icon: <IconText />, label: 'Text', shortcut: 'T' },
+    { id: 'vote', icon: <IconVoteDot />, label: 'Vote dot', shortcut: 'D' },
     { id: 'hand', icon: <IconHand />, label: 'Pan', shortcut: 'H' },
   ];
 
@@ -88,27 +182,11 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOp
     setShapeMenuOpen(false);
   };
 
-  const handleImportJSON = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        importFromJSON(data);
-      } catch (err) {
-        console.error('Failed to import board:', err);
-        alert('Invalid board file.');
-      }
-    };
-    input.click();
-  };
-
   return (
-    <div className="canvas-toolbar">
+    <div ref={toolbarRef} className={`canvas-toolbar canvas-toolbar--${toolbarDock}`} style={toolbarDock === 'left' || toolbarDock === 'right' ? { top: `${toolbarOffset}%` } : { left: `${toolbarOffset}%` }}>
+      <div className="toolbar-drag-handle" onPointerDown={handleDockDragStart} title="Drag toolbar to another side" aria-label="Drag toolbar to another side">
+        <span /><span /><span /><span /><span /><span />
+      </div>
       {/* Tools section */}
       <div className="toolbar-section">
         {TOOLS.map((tool) => {
@@ -222,12 +300,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOp
             <kbd>⌘E</kbd>
           </span>
         </button>
-        <button className="toolbar-btn" onClick={handleImportJSON} title="Import board">
+        <button className="toolbar-btn" onClick={onOpenImport} title="Import JSON, CSV, or Markdown">
           <IconImport />
-          <span className="toolbar-tooltip">
-            Import
-          </span>
+          <span className="toolbar-tooltip">Import</span>
         </button>
+        <button className="toolbar-btn" onClick={() => imageInputRef.current?.click()} title="Insert image">
+          <IconImage />
+          <span className="toolbar-tooltip">Insert image</span>
+        </button>
+        <input ref={imageInputRef} className="toolbar-image-input" type="file" accept="image/*" onChange={handleImageFile} />
         <button
           className={`toolbar-btn ${!soundEnabled ? 'dimmed' : ''}`}
           onClick={toggleSound}
@@ -240,13 +321,12 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOp
         </button>
       </div>
 
-      {/* Total Item count badge (cards + shapes) */}
-      {(cards.length > 0 || shapes.length > 0) && (
-        <div className="toolbar-badge" title={`${cards.length} cards, ${shapes.length} shapes`}>
-          {cards.length + shapes.length}
+      {/* Total item count badge */}
+      {(cards.length > 0 || shapes.length > 0 || textItems.length > 0 || voteDots.length > 0 || images.length > 0) && (
+        <div className="toolbar-badge" title={`${cards.length} cards, ${shapes.length} shapes, ${textItems.length} text items, ${voteDots.length} vote dots, ${images.length} images`}>
+          {cards.length + shapes.length + textItems.length + voteDots.length + images.length}
         </div>
       )}
     </div>
   );
 };
-

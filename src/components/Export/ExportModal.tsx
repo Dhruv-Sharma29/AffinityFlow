@@ -38,11 +38,11 @@ const BG_OPTIONS = [
 ];
 
 export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => {
-  const { cards, shapes, connectors, clusters } = useBoardStore();
+  const { cards, shapes, connectors, clusters, textItems, voteDots, images } = useBoardStore();
 
   const [format, setFormat] = useState<ExportFormat>('pdf');
   const [quality, setQuality] = useState<ExportQuality>('high');
-  const [title, setTitle] = useState('Affinity Board');
+  const [title, setTitle] = useState('VisioSpace Board');
   const [includeTitle, setIncludeTitle] = useState(true);
   const [includeTimestamp, setIncludeTimestamp] = useState(true);
   const [bgColor, setBgColor] = useState('#b8804f');
@@ -51,7 +51,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
 
   if (!isOpen) return null;
 
-  const totalItems = cards.length + shapes.length;
+  const totalItems = cards.length + shapes.length + textItems.length + voteDots.length + images.length;
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -69,7 +69,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
 
     try {
       if (format === 'json') {
-        exportToJson(cards, shapes, connectors, clusters, options);
+        exportToJson(cards, shapes, connectors, clusters, options, textItems, voteDots, images);
       } else {
         const stage = getGlobalStageRef();
         if (!stage) {
@@ -78,13 +78,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
 
         switch (format) {
           case 'pdf':
-            await exportToPdf(stage, cards, shapes, clusters, options);
+            await exportToPdf(stage, cards, shapes, clusters, options, textItems, voteDots, images);
             break;
           case 'png':
-            await exportToPng(stage, cards, shapes, clusters, options);
+            await exportToPng(stage, cards, shapes, clusters, options, textItems, voteDots, images);
             break;
           case 'svg':
-            exportToSvg(stage, cards, shapes, clusters, options);
+            exportToSvg(stage, cards, shapes, clusters, options, textItems, voteDots, images);
             break;
         }
       }
@@ -125,6 +125,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
           <span className="export-info-dot">·</span>
           <span className="export-info-item">{shapes.length} shape{shapes.length !== 1 ? 's' : ''}</span>
           <span className="export-info-dot">·</span>
+          <span className="export-info-item">{textItems.length} text item{textItems.length !== 1 ? 's' : ''}</span>
+          <span className="export-info-dot">·</span>
+          <span className="export-info-item">{voteDots.length} vote dot{voteDots.length !== 1 ? 's' : ''}</span>
+          <span className="export-info-dot">·</span>
+          <span className="export-info-item">{images.length} image{images.length !== 1 ? 's' : ''}</span>
+          <span className="export-info-dot">·</span>
           <span className="export-info-item">{connectors.length} connection{connectors.length !== 1 ? 's' : ''}</span>
           <span className="export-info-dot">·</span>
           <span className="export-info-item">{clusters.length} group{clusters.length !== 1 ? 's' : ''}</span>
@@ -156,7 +162,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
             className="export-input"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="My Affinity Board"
+            placeholder="My VisioSpace Board"
           />
         </div>
 
@@ -266,4 +272,3 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose }) => 
     </div>
   );
 };
-

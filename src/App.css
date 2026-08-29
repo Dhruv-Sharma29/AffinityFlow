@@ -41,10 +41,12 @@
   width: 28px;
   height: 28px;
   border-radius: 6px;
-  background: linear-gradient(135deg, #c0392b, #e74c3c);
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(192, 57, 43, 0.35);
+  background: #f8fafc;
+  box-shadow: 0 2px 6px rgba(19, 37, 61, 0.35);
+  overflow: hidden;
 }
+
+.app-watermark-logo img { width: 100%; height: 100%; display: block; }
 
 .app-watermark-title {
   font-family: 'Inter', -apple-system, sans-serif;
@@ -94,3 +96,7 @@
   color: rgba(200, 190, 175, 0.8);
   margin: 0 1px;
 }
+
+/* Keep the contextual hint above a horizontal toolbar instead of underneath it. */
+.app-toolbar-bottom .app-hint-bar { bottom: 72px; }
+.app-toolbar-top .app-hint-bar { top: 72px; bottom: auto; }

@@ -105,8 +105,52 @@ export interface Cluster {
   color?: ClusterColor;
 }
 
+export interface TextItem {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+  fontSize: number;
+  color: string;
+  width: number;
+  rotation: number;
+  zIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type VoteColor = 'red' | 'yellow' | 'green' | 'blue' | 'purple';
+export const VOTE_COLORS: Record<VoteColor, string> = {
+  red: '#e05252', yellow: '#e0ad32', green: '#4eaa6a', blue: '#4d83c4', purple: '#8960b5',
+};
+
+export interface VoteDot {
+  id: string;
+  x: number;
+  y: number;
+  color: VoteColor;
+  zIndex: number;
+  createdAt: string;
+}
+
+export interface ImageItem {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  src: string;
+  name: string;
+  shape: ShapeType;
+  rotation: number;
+  zIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Tool ───────────────────────────────────────────────────────────
-export type Tool = 'select' | 'card' | 'shape' | 'connector' | 'cluster' | 'hand';
+export type Tool = 'select' | 'card' | 'shape' | 'connector' | 'cluster' | 'text' | 'vote' | 'hand';
+export type ToolbarDock = 'left' | 'right' | 'top' | 'bottom';
 
 // ─── Viewport ───────────────────────────────────────────────────────
 export interface Viewport {
@@ -121,6 +165,9 @@ export interface BoardState {
   shapes: Shape[];
   connectors: Connector[];
   clusters: Cluster[];
+  textItems?: TextItem[];
+  voteDots?: VoteDot[];
+  images?: ImageItem[];
 }
 
 // ─── History Entry (for undo/redo) ──────────────────────────────────
@@ -129,6 +176,9 @@ export interface HistoryEntry {
   shapes: Shape[];
   connectors: Connector[];
   clusters: Cluster[];
+  textItems: TextItem[];
+  voteDots: VoteDot[];
+  images?: ImageItem[];
 }
 
 // ─── Template Definition ────────────────────────────────────────────
@@ -140,4 +190,3 @@ export interface BoardTemplate {
   icon: string;
   state: BoardState;
 }
-

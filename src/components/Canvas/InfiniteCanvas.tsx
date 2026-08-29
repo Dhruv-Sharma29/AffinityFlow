@@ -9,6 +9,9 @@ import { getShapeDefinition } from '../Shape/shapeRegistry';
 import { ConnectorLine } from '../Connector/ConnectorLine';
 import { ConnectorCreator } from '../Connector/ConnectorCreator';
 import { ClusterLabel } from '../Cluster/ClusterLabel';
+import { TextNode } from '../Text/TextNode';
+import { VoteDotNode } from '../Vote/VoteDotNode';
+import { ImageNode } from '../Image/ImageNode';
 
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 4;
@@ -38,7 +41,7 @@ export const InfiniteCanvas: React.FC = () => {
   const [marqueeCurrent, setMarqueeCurrent] = useState<{ x: number; y: number } | null>(null);
 
   const {
-    cards, shapes, connectors, clusters,
+    cards, shapes, connectors, clusters, textItems, voteDots, images,
     viewport, setViewport,
     activeTool, activeShapeType,
     selectedIds, setSelectedIds, clearSelection,
@@ -46,11 +49,14 @@ export const InfiniteCanvas: React.FC = () => {
     addShape, moveShape, resizeShape, bringShapeToFront,
     addCluster, moveCluster, resizeCluster, bringClusterToFront,
     editingCardId, setEditingCardId,
+    setEditingTextId,
     editingShapeId, setEditingShapeId,
     setEditingClusterId,
     connectingFromId, setConnectingFromId,
     addConnector,
     setActiveTool,
+    addTextItem, addVoteDot, moveTextItem, moveVoteDot,
+    moveImage, bringImageToFront,
   } = useBoardStore();
 
   // Register stage ref globally for export
@@ -126,6 +132,18 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
+      if (activeTool === 'text') {
+        const id = addTextItem(worldX, worldY);
+        setEditingTextId(id);
+        setActiveTool('select');
+        return;
+      }
+
+      if (activeTool === 'vote') {
+        addVoteDot(worldX, worldY);
+        return;
+      }
+
       if (activeTool === 'cluster') {
         setDrawingClusterStart({ x: worldX, y: worldY });
         setDrawingClusterCurrent({ x: worldX, y: worldY });
@@ -157,7 +175,7 @@ export const InfiniteCanvas: React.FC = () => {
         }
       }
     },
-    [activeTool, viewport, addCard, clearSelection, connectingFromId, setConnectingFromId, setActiveTool]
+    [activeTool, viewport, addCard, addTextItem, addVoteDot, clearSelection, connectingFromId, setConnectingFromId, setActiveTool, setEditingTextId]
   );
 
   // ─── Stage double click (instant card creation on canvas or inside cluster) ────
@@ -274,6 +292,24 @@ export const InfiniteCanvas: React.FC = () => {
           }
         });
 
+        textItems.forEach((text) => {
+          if (text.x < boxX + boxW && text.x + text.width > boxX && text.y < boxY + boxH && text.y + text.fontSize * 2 > boxY) {
+            selected.push(text.id);
+          }
+        });
+
+        voteDots.forEach((dot) => {
+          if (dot.x + 12 > boxX && dot.x - 12 < boxX + boxW && dot.y + 12 > boxY && dot.y - 12 < boxY + boxH) {
+            selected.push(dot.id);
+          }
+        });
+
+        images.forEach((image) => {
+          if (image.x < boxX + boxW && image.x + image.width > boxX && image.y < boxY + boxH && image.y + image.height > boxY) {
+            selected.push(image.id);
+          }
+        });
+
         if (selected.length > 0) {
           setSelectedIds(selected);
         }
@@ -346,7 +382,7 @@ export const InfiniteCanvas: React.FC = () => {
       setDrawingShapeCurrent(null);
       setActiveTool('select');
     }
-  }, [marqueeStart, marqueeCurrent, cards, shapes, clusters, drawingClusterStart, drawingClusterCurrent, drawingShapeStart, drawingShapeCurrent, activeShapeType, addCluster, addShape, setSelectedIds, setActiveTool]);
+  }, [marqueeStart, marqueeCurrent, cards, shapes, clusters, textItems, voteDots, images, drawingClusterStart, drawingClusterCurrent, drawingShapeStart, drawingShapeCurrent, activeShapeType, addCluster, addShape, setSelectedIds, setActiveTool]);
 
   // ─── Card interaction handlers ───────────────────────────────────
   const handleCardSelect = useCallback(
@@ -393,6 +429,33 @@ export const InfiniteCanvas: React.FC = () => {
     },
     []
   );
+
+  const handleTextSelect = useCallback((id: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.shiftKey) useBoardStore.getState().toggleSelection(id);
+    else setSelectedIds([id]);
+  }, [setSelectedIds]);
+
+  const handleTextEdit = useCallback((id: string) => setEditingTextId(id), [setEditingTextId]);
+
+  const handleVoteSelect = useCallback((id: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.shiftKey) useBoardStore.getState().toggleSelection(id);
+    else setSelectedIds([id]);
+  }, [setSelectedIds]);
+
+  const handleImageSelect = useCallback((id: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (e.evt.shiftKey) useBoardStore.getState().toggleSelection(id);
+    else setSelectedIds([id]);
+    bringImageToFront(id);
+  }, [setSelectedIds, bringImageToFront]);
+
+  const handleImageDragStart = useCallback((id: string) => {
+    useBoardStore.getState().pushHistory();
+    bringImageToFront(id);
+  }, [bringImageToFront]);
+
+  const handleImageTransformEnd = useCallback((id: string, width: number, height: number, x: number, y: number, rotation: number) => {
+    useBoardStore.getState().updateImage(id, { width, height, x, y, rotation });
+  }, []);
 
   // ─── Shape interaction handlers ──────────────────────────────────
   const handleShapeSelect = useCallback(
@@ -528,6 +591,7 @@ export const InfiniteCanvas: React.FC = () => {
   // Sort cards and shapes by zIndex
   const sortedCards = [...cards].sort((a, b) => a.zIndex - b.zIndex);
   const sortedShapes = [...shapes].sort((a, b) => a.zIndex - b.zIndex);
+  const sortedImages = [...images].sort((a, b) => a.zIndex - b.zIndex);
 
   // Connector source item (could be Card or Shape)
   const connectingSourceItem = connectingFromId
@@ -541,6 +605,7 @@ export const InfiniteCanvas: React.FC = () => {
   if (activeTool === 'shape') cursor = 'crosshair';
   if (activeTool === 'connector') cursor = 'crosshair';
   if (activeTool === 'cluster') cursor = 'crosshair';
+  if (activeTool === 'text' || activeTool === 'vote') cursor = 'crosshair';
 
   // Drag-to-draw shape ghost calculation
   let ghostBox: { x: number; y: number; width: number; height: number } | null = null;
@@ -690,6 +755,21 @@ export const InfiniteCanvas: React.FC = () => {
         )}
       </Layer>
 
+      {/* Images layer */}
+      <Layer>
+        {sortedImages.map(image => (
+          <ImageNode
+            key={image.id}
+            image={image}
+            isSelected={selectedIds.includes(image.id)}
+            onSelect={handleImageSelect}
+            onDragStart={handleImageDragStart}
+            onDragEnd={moveImage}
+            onTransformEnd={handleImageTransformEnd}
+          />
+        ))}
+      </Layer>
+
       {/* Cards layer */}
       <Layer>
         {sortedCards.map(card => (
@@ -705,6 +785,12 @@ export const InfiniteCanvas: React.FC = () => {
             onDragEnd={handleCardDragEnd}
             onDoubleClick={handleCardDoubleClick}
           />
+        ))}
+        {textItems.map(item => (
+          <TextNode key={item.id} item={item} isSelected={selectedIds.includes(item.id)} onSelect={handleTextSelect} onEdit={handleTextEdit} onMove={moveTextItem} />
+        ))}
+        {voteDots.map(dot => (
+          <VoteDotNode key={dot.id} dot={dot} count={voteDots.filter(d => d.x === dot.x && d.y === dot.y && d.color === dot.color).length} isSelected={selectedIds.includes(dot.id)} onSelect={handleVoteSelect} onMove={moveVoteDot} />
         ))}
 
         {/* Live Marquee Rubber-Band Selection Box */}

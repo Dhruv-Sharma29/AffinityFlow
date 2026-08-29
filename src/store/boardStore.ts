@@ -2,11 +2,13 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   Card, Shape, Connector, Cluster, Tool, Viewport,
-  CardColor, ShapeType, ShapeColor, ConnectorColor, ConnectorStyle, ClusterColor,
-  BoardState, HistoryEntry,
+  CardColor, ShapeType, ShapeColor, ConnectorColor, ConnectorStyle, ClusterColor, TextItem, VoteDot, VoteColor,
+  BoardState, HistoryEntry, ToolbarDock, ImageItem,
 } from '../types/board';
 import { getShapeDefinition } from '../components/Shape/shapeRegistry';
 import { SoundEffects } from '../utils/soundEffects';
+import { normalizeBoardState } from '../utils/boardValidation';
+import { getImportLayout } from '../utils/importLayout';
 
 // ─── Constants ──────────────────────────────────────────────────────
 const MAX_HISTORY = 50;
@@ -60,18 +62,24 @@ interface BoardStore {
   shapes: Shape[];
   connectors: Connector[];
   clusters: Cluster[];
+  textItems: TextItem[];
+  voteDots: VoteDot[];
+  images: ImageItem[];
   selectedIds: string[];
   activeTool: Tool;
   activeShapeType: ShapeType;
   viewport: Viewport;
   editingCardId: string | null;
   viewingCardId: string | null;
+  editingTextId: string | null;
   editingShapeId: string | null;
   editingConnectorId: string | null;
   editingClusterId: string | null;
   confirmDeleteCluster: ConfirmDeleteModalState | null;
   connectingFromId: string | null;
   soundEnabled: boolean;
+  toolbarDock: ToolbarDock;
+  toolbarOffset: number;
 
   // History
   history: HistoryEntry[];
@@ -79,13 +87,27 @@ interface BoardStore {
 
   // Sound
   toggleSound: () => void;
+  setToolbarPosition: (dock: ToolbarDock, offset: number) => void;
 
   // Card actions
   addCard: (x: number, y: number, color?: CardColor, clusterId?: string) => string;
+  importCards: (cards: Array<Pick<Card, 'title' | 'body' | 'eyebrow' | 'color'>>) => string[];
+  addImage: (src: string, name?: string, x?: number, y?: number, width?: number, height?: number, shape?: ShapeType) => string;
+  updateImage: (id: string, updates: Partial<ImageItem>) => void;
+  deleteImage: (id: string) => void;
+  moveImage: (id: string, x: number, y: number) => void;
+  bringImageToFront: (id: string) => void;
   addCardToCluster: (clusterId: string, color?: CardColor) => string;
   updateCard: (id: string, updates: Partial<Card>) => void;
   deleteCard: (id: string) => void;
   moveCard: (id: string, x: number, y: number) => void;
+  addTextItem: (x: number, y: number, text?: string) => string;
+  updateTextItem: (id: string, updates: Partial<TextItem>) => void;
+  deleteTextItem: (id: string) => void;
+  moveTextItem: (id: string, x: number, y: number) => void;
+  addVoteDot: (x: number, y: number, color?: VoteColor) => string;
+  deleteVoteDot: (id: string) => void;
+  moveVoteDot: (id: string, x: number, y: number) => void;
   bringToFront: (id: string) => void;
 
   // Shape actions
@@ -139,6 +161,7 @@ interface BoardStore {
 
   // Editing
   setEditingCardId: (id: string | null) => void;
+  setEditingTextId: (id: string | null) => void;
   setViewingCardId: (id: string | null) => void;
   setConnectingFromId: (id: string | null) => void;
 
@@ -155,22 +178,41 @@ interface BoardStore {
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function getMaxZIndex(cards: Card[], shapes: Shape[] = []): number {
+function getMaxZIndex(cards: Card[], shapes: Shape[] = [], textItems: TextItem[] = [], voteDots: VoteDot[] = [], images: ImageItem[] = []): number {
   const cardMax = cards.reduce((max, c) => Math.max(max, c.zIndex), 0);
   const shapeMax = shapes.reduce((max, s) => Math.max(max, s.zIndex), 0);
-  return Math.max(cardMax, shapeMax);
+  const textMax = textItems.reduce((max, t) => Math.max(max, t.zIndex), 0);
+  const voteMax = voteDots.reduce((max, d) => Math.max(max, d.zIndex), 0);
+  const imageMax = images.reduce((max, image) => Math.max(max, image.zIndex), 0);
+  return Math.max(cardMax, shapeMax, textMax, voteMax, imageMax);
 }
 
 function randomRotation(): number {
   return (Math.random() - 0.5) * 6;
 }
 
-function snapshot(cards: Card[], shapes: Shape[], connectors: Connector[], clusters: Cluster[]): HistoryEntry {
+function getInitialToolbarPosition(): { dock: ToolbarDock; offset: number } {
+  if (typeof window === 'undefined') return { dock: 'left', offset: 50 };
+  try {
+    const saved = JSON.parse(localStorage.getItem('visiospace_toolbar') || '{}');
+    if (['left', 'right', 'top', 'bottom'].includes(saved.dock) && Number.isFinite(saved.offset)) {
+      return { dock: saved.dock as ToolbarDock, offset: Math.max(10, Math.min(90, saved.offset)) };
+    }
+  } catch { /* use the responsive default */ }
+  return { dock: window.innerHeight <= 700 ? 'bottom' : 'left', offset: 50 };
+}
+
+const initialToolbarPosition = getInitialToolbarPosition();
+
+function snapshot(cards: Card[], shapes: Shape[], connectors: Connector[], clusters: Cluster[], textItems: TextItem[], voteDots: VoteDot[], images: ImageItem[]): HistoryEntry {
   return {
     cards: cards.map(c => ({ ...c })),
     shapes: shapes.map(s => ({ ...s })),
     connectors: connectors.map(c => ({ ...c })),
     clusters: clusters.map(c => ({ ...c })),
+    textItems: textItems.map(t => ({ ...t })),
+    voteDots: voteDots.map(d => ({ ...d })),
+    images: images.map(image => ({ ...image })),
   };
 }
 
@@ -181,18 +223,24 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   shapes: [],
   connectors: [],
   clusters: [],
+  textItems: [],
+  voteDots: [],
+  images: [],
   selectedIds: [],
   activeTool: 'select',
   activeShapeType: 'rectangle',
   viewport: { x: 0, y: 0, scale: 1 },
   editingCardId: null,
   viewingCardId: null,
+  editingTextId: null,
   editingShapeId: null,
   editingConnectorId: null,
   editingClusterId: null,
   confirmDeleteCluster: null,
   connectingFromId: null,
-  soundEnabled: typeof window !== 'undefined' ? localStorage.getItem('affinity_sound') !== 'false' : true,
+  soundEnabled: typeof window !== 'undefined' ? (localStorage.getItem('visiospace_sound') ?? localStorage.getItem('affinity_sound')) !== 'false' : true,
+  toolbarDock: initialToolbarPosition.dock,
+  toolbarOffset: initialToolbarPosition.offset,
   history: [],
   historyIndex: -1,
 
@@ -200,9 +248,15 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   toggleSound: () => {
     const next = !get().soundEnabled;
     if (typeof window !== 'undefined') {
-      localStorage.setItem('affinity_sound', String(next));
+      localStorage.setItem('visiospace_sound', String(next));
     }
     set({ soundEnabled: next });
+  },
+
+  setToolbarPosition: (dock, offset) => {
+    const safeOffset = Math.max(10, Math.min(90, offset));
+    if (typeof window !== 'undefined') localStorage.setItem('visiospace_toolbar', JSON.stringify({ dock, offset: safeOffset }));
+    set({ toolbarDock: dock, toolbarOffset: safeOffset });
   },
 
   // ── Card Actions ────────────────────────────────────────────────
@@ -259,6 +313,87 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     });
     return id;
   },
+
+  importCards: (cardsToImport) => {
+    if (cardsToImport.length === 0) return [];
+
+    const { cards, shapes, clusters, textItems, voteDots } = get();
+    const occupied = [
+      ...cards.map(card => ({ x: card.x, y: card.y, width: card.width, height: card.height })),
+      ...shapes.map(shape => ({ x: shape.x, y: shape.y, width: shape.width, height: shape.height })),
+      ...clusters.map(cluster => ({ x: cluster.x, y: cluster.y, width: cluster.width, height: cluster.height })),
+      ...textItems.map(text => ({ x: text.x, y: text.y, width: text.width, height: text.fontSize * 2 })),
+      ...voteDots.map(dot => ({ x: dot.x - 12, y: dot.y - 12, width: 24, height: 24 })),
+    ];
+    const layout = getImportLayout(cardsToImport.length, occupied);
+    const firstZIndex = getMaxZIndex(cards, shapes, textItems, voteDots);
+    const now = new Date().toISOString();
+    const newCards = cardsToImport.map((card, index): Card => ({
+      id: uuidv4(),
+      ...layout[index],
+      color: card.color,
+      title: card.title,
+      body: card.body,
+      eyebrow: card.eyebrow,
+      zIndex: firstZIndex + index + 1,
+      rotation: randomRotation(),
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    get().pushHistory();
+    if (get().soundEnabled) SoundEffects.paperPlace();
+    set(state => ({
+      cards: [...state.cards, ...newCards],
+      clusters: recalculateClusters(state.clusters, [...state.cards, ...newCards], state.shapes),
+      selectedIds: newCards.map(card => card.id),
+      editingCardId: null,
+      editingTextId: null,
+      editingShapeId: null,
+      editingClusterId: null,
+    }));
+    return newCards.map(card => card.id);
+  },
+
+  addImage: (src, name = 'Image', x = 100, y = 100, width = 320, height = 220, shape = 'rectangle') => {
+    if (!src) return '';
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    get().pushHistory();
+    const newImage: ImageItem = {
+      id,
+      x,
+      y,
+      width: Math.max(40, width),
+      height: Math.max(40, height),
+      src,
+      name,
+      shape,
+      rotation: 0,
+      zIndex: getMaxZIndex(get().cards, get().shapes, get().textItems, get().voteDots, get().images) + 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+    set(state => ({
+      images: [...state.images, newImage],
+      selectedIds: [id],
+      editingCardId: null,
+      editingTextId: null,
+      editingShapeId: null,
+      editingClusterId: null,
+    }));
+    return id;
+  },
+  updateImage: (id, updates) => {
+    get().pushHistory();
+    set(state => ({ images: state.images.map(image => image.id === id ? { ...image, ...updates, updatedAt: new Date().toISOString() } : image) }));
+  },
+  deleteImage: (id) => {
+    get().pushHistory();
+    set(state => ({ images: state.images.filter(image => image.id !== id), selectedIds: state.selectedIds.filter(selectedId => selectedId !== id) }));
+  },
+  moveImage: (id, x, y) => set(state => ({ images: state.images.map(image => image.id === id ? { ...image, x, y, updatedAt: new Date().toISOString() } : image) })),
+  bringImageToFront: (id) => set(state => ({ images: state.images.map(image => image.id === id ? { ...image, zIndex: getMaxZIndex(state.cards, state.shapes, state.textItems, state.voteDots, state.images) + 1 } : image) })),
 
   addCardToCluster: (clusterId: string, color = 'cream') => {
     const { clusters, cards } = get();
@@ -347,6 +482,18 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       };
     });
   },
+
+  addTextItem: (x, y, text = '') => {
+    const id = uuidv4(); const now = new Date().toISOString(); get().pushHistory();
+    set(state => ({ textItems: [...state.textItems, { id, x, y, text, fontSize: 22, color: '#2b2420', width: 280, rotation: 0, zIndex: getMaxZIndex(state.cards, state.shapes) + 1, createdAt: now, updatedAt: now }], selectedIds: [id] }));
+    return id;
+  },
+  updateTextItem: (id, updates) => { get().pushHistory(); set(state => ({ textItems: state.textItems.map(t => t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t) })); },
+  deleteTextItem: (id) => { get().pushHistory(); set(state => ({ textItems: state.textItems.filter(t => t.id !== id), selectedIds: state.selectedIds.filter(s => s !== id) })); },
+  moveTextItem: (id, x, y) => set(state => ({ textItems: state.textItems.map(t => t.id === id ? { ...t, x, y } : t) })),
+  addVoteDot: (x, y, color = 'red') => { const id = uuidv4(); get().pushHistory(); set(state => ({ voteDots: [...state.voteDots, { id, x, y, color, zIndex: getMaxZIndex(state.cards, state.shapes) + 1, createdAt: new Date().toISOString() }], selectedIds: [id] })); return id; },
+  deleteVoteDot: (id) => { get().pushHistory(); set(state => ({ voteDots: state.voteDots.filter(d => d.id !== id), selectedIds: state.selectedIds.filter(s => s !== id) })); },
+  moveVoteDot: (id, x, y) => set(state => ({ voteDots: state.voteDots.map(d => d.id === id ? { ...d, x, y } : d) })),
 
   bringToFront: (id) => {
     set(state => ({
@@ -932,13 +1079,14 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   clearSelection: () => set({
     selectedIds: [],
     editingCardId: null,
+    editingTextId: null,
     editingShapeId: null,
     editingConnectorId: null,
     editingClusterId: null,
   }),
 
   deleteSelected: () => {
-    const { selectedIds, cards, shapes, connectors, clusters } = get();
+    const { selectedIds, cards, shapes, connectors, clusters, textItems, voteDots, images } = get();
     if (selectedIds.length === 0) return;
 
     const clusterInSelection = clusters.find(c => selectedIds.includes(c.id));
@@ -955,11 +1103,17 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const shapeIds = new Set(selectedIds.filter(id => shapes.some(s => s.id === id)));
     const connectorIds = new Set(selectedIds.filter(id => connectors.some(c => c.id === id)));
     const clusterIds = new Set(selectedIds.filter(id => clusters.some(c => c.id === id)));
+    const textIds = new Set(selectedIds.filter(id => textItems.some(t => t.id === id)));
+    const voteIds = new Set(selectedIds.filter(id => voteDots.some(d => d.id === id)));
+    const imageIds = new Set(selectedIds.filter(id => images.some(image => image.id === id)));
     const removedItemIds = new Set([...cardIds, ...shapeIds]);
 
     set(state => {
       const nextCards = state.cards.filter(c => !cardIds.has(c.id));
       const nextShapes = state.shapes.filter(s => !shapeIds.has(s.id));
+      const nextTextItems = state.textItems.filter(t => !textIds.has(t.id));
+      const nextVoteDots = state.voteDots.filter(d => !voteIds.has(d.id));
+      const nextImages = state.images.filter(image => !imageIds.has(image.id));
       const remainingClusters = state.clusters.filter(c => !clusterIds.has(c.id));
       const nextClusters = recalculateClusters(remainingClusters, nextCards, nextShapes);
 
@@ -970,6 +1124,9 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
           c => !connectorIds.has(c.id) && !removedItemIds.has(c.fromCardId) && !removedItemIds.has(c.toCardId)
         ),
         clusters: nextClusters,
+        textItems: nextTextItems,
+        voteDots: nextVoteDots,
+        images: nextImages,
         selectedIds: [],
         editingCardId: null,
         editingShapeId: null,
@@ -1011,6 +1168,9 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       cards: state.cards.map(c => (idSet.has(c.id) || autoMovedCardIds.has(c.id)) ? { ...c, x: c.x + dx, y: c.y + dy, updatedAt: new Date().toISOString() } : c),
       shapes: state.shapes.map(s => (idSet.has(s.id) || autoMovedShapeIds.has(s.id)) ? { ...s, x: s.x + dx, y: s.y + dy, updatedAt: new Date().toISOString() } : s),
       clusters: state.clusters.map(cl => idSet.has(cl.id) ? { ...cl, x: cl.x + dx, y: cl.y + dy } : cl),
+      textItems: state.textItems.map(t => idSet.has(t.id) ? { ...t, x: t.x + dx, y: t.y + dy } : t),
+      voteDots: state.voteDots.map(d => idSet.has(d.id) ? { ...d, x: d.x + dx, y: d.y + dy } : d),
+      images: state.images.map(image => idSet.has(image.id) ? { ...image, x: image.x + dx, y: image.y + dy } : image),
     }));
   },
 
@@ -1038,8 +1198,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     })),
 
   zoomToFit: () => {
-    const { cards, shapes, clusters } = get();
-    if (cards.length === 0 && shapes.length === 0 && clusters.length === 0) {
+    const { cards, shapes, clusters, textItems, voteDots, images } = get();
+    if (cards.length === 0 && shapes.length === 0 && clusters.length === 0 && textItems.length === 0 && voteDots.length === 0 && images.length === 0) {
       set({ viewport: { x: 0, y: 0, scale: 1 } });
       return;
     }
@@ -1048,6 +1208,9 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       ...cards.map(c => ({ x: c.x, y: c.y, w: c.width, h: c.height })),
       ...shapes.map(s => ({ x: s.x, y: s.y, w: s.width, h: s.height })),
       ...clusters.map(c => ({ x: c.x, y: c.y, w: c.width, h: c.height })),
+      ...textItems.map(t => ({ x: t.x, y: t.y, w: t.width, h: t.fontSize * 2 })),
+      ...voteDots.map(d => ({ x: d.x - 12, y: d.y - 12, w: 24, h: 24 })),
+      ...images.map(image => ({ x: image.x, y: image.y, w: image.width, h: image.height })),
     ];
 
     const minX = Math.min(...allItems.map(i => i.x)) - 60;
@@ -1071,14 +1234,15 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   resetView: () => set({ viewport: { x: 0, y: 0, scale: 1 } }),
 
   // ── Editing ─────────────────────────────────────────────────────
-  setEditingCardId: (id) => set({ editingCardId: id, viewingCardId: null, editingShapeId: null, editingClusterId: null }),
+  setEditingCardId: (id) => set({ editingCardId: id, viewingCardId: null, editingTextId: null, editingShapeId: null, editingClusterId: null }),
+  setEditingTextId: (id) => set({ editingTextId: id, editingCardId: null, editingShapeId: null, editingClusterId: null }),
   setViewingCardId: (id) => set({ viewingCardId: id }),
   setConnectingFromId: (id) => set({ connectingFromId: id }),
 
   // ── History ─────────────────────────────────────────────────────
   pushHistory: () => {
-    const { cards, shapes, connectors, clusters, history, historyIndex } = get();
-    const entry = snapshot(cards, shapes, connectors, clusters);
+    const { cards, shapes, connectors, clusters, textItems, voteDots, images, history, historyIndex } = get();
+    const entry = snapshot(cards, shapes, connectors, clusters, textItems, voteDots, images);
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(entry);
     if (newHistory.length > MAX_HISTORY) newHistory.shift();
@@ -1094,6 +1258,9 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       shapes: (entry.shapes || []).map(s => ({ ...s })),
       connectors: entry.connectors.map(c => ({ ...c })),
       clusters: entry.clusters.map(c => ({ ...c })),
+      textItems: (entry.textItems || []).map(t => ({ ...t })),
+      voteDots: (entry.voteDots || []).map(d => ({ ...d })),
+      images: (entry.images || []).map(image => ({ ...image })),
       historyIndex: historyIndex - 1,
       selectedIds: [],
       editingCardId: null,
@@ -1112,6 +1279,9 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       shapes: (entry.shapes || []).map(s => ({ ...s })),
       connectors: entry.connectors.map(c => ({ ...c })),
       clusters: entry.clusters.map(c => ({ ...c })),
+      textItems: (entry.textItems || []).map(t => ({ ...t })),
+      voteDots: (entry.voteDots || []).map(d => ({ ...d })),
+      images: (entry.images || []).map(image => ({ ...image })),
       historyIndex: historyIndex + 1,
       selectedIds: [],
       editingCardId: null,
@@ -1123,15 +1293,16 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
   // ── Serialization ───────────────────────────────────────────────
   exportToJSON: () => {
-    const { cards, shapes, connectors, clusters } = get();
-    return { cards, shapes, connectors, clusters };
+    const { cards, shapes, connectors, clusters, textItems, voteDots, images } = get();
+    return { cards, shapes, connectors, clusters, textItems, voteDots, images };
   },
 
   importFromJSON: (state) => {
     get().pushHistory();
-    const rawClusters = state.clusters || [];
-    const rawCards = state.cards || [];
-    const rawShapes = state.shapes || [];
+    const safeState = normalizeBoardState(state);
+    const rawClusters = safeState.clusters || [];
+    const rawCards = safeState.cards || [];
+    const rawShapes = safeState.shapes || [];
 
     const cardsWithClusterId = rawCards.map(card => {
       if (card.clusterId) return card;
@@ -1153,13 +1324,18 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
     const adjustedClusters = recalculateClusters(rawClusters, cardsWithClusterId, shapesWithClusterId);
 
+    const validItemIds = new Set([...cardsWithClusterId, ...shapesWithClusterId].map(item => item.id));
     set({
       cards: cardsWithClusterId,
       shapes: shapesWithClusterId,
-      connectors: state.connectors || [],
+      connectors: safeState.connectors.filter(connector => validItemIds.has(connector.fromCardId) && validItemIds.has(connector.toCardId)),
       clusters: adjustedClusters,
+      textItems: safeState.textItems || [],
+      voteDots: safeState.voteDots || [],
+      images: safeState.images || [],
       selectedIds: [],
       editingCardId: null,
+      editingTextId: null,
       editingShapeId: null,
       editingClusterId: null,
       confirmDeleteCluster: null,
@@ -1288,8 +1464,12 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       shapes: [],
       connectors: [],
       clusters: [],
+      textItems: [],
+      voteDots: [],
+      images: [],
       selectedIds: [],
       editingCardId: null,
+      editingTextId: null,
       editingShapeId: null,
       editingClusterId: null,
       confirmDeleteCluster: null,

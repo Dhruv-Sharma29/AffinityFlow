@@ -1,6 +1,6 @@
-# AffinityFlow
+# VisioSpace
 
-AffinityFlow is a powerful, infinite-canvas sensemaking and diagramming tool built with React, TypeScript, and Konva. It enables users to brainstorm, organize ideas with affinity mapping, create architecture diagrams, and visually connect thoughts on an infinite digital whiteboard.
+VisioSpace is a powerful, infinite-canvas sensemaking and diagramming tool built with React, TypeScript, and Konva. It enables users to brainstorm, organize ideas with affinity mapping, create architecture diagrams, and visually connect thoughts on an infinite digital whiteboard.
 
 ## Features
 
@@ -10,10 +10,15 @@ AffinityFlow is a powerful, infinite-canvas sensemaking and diagramming tool bui
   - **Shapes:** Basic geometric shapes for diagramming (rectangles, circles, etc.).
   - **Connectors:** Draw lines between cards and shapes with customizable labels.
   - **Clusters:** Visually group related items together.
+  - **Standalone text:** Place editable text directly on the canvas.
+  - **Voting dots:** Add colored prioritization dots and stacked vote counts.
+  - **Images:** Insert local images, resize/rotate them, duplicate them, and clip them to six selectable shapes.
 - **Advanced Tools:**
   - **Minimap:** A radar overview of the entire canvas to help you navigate.
   - **Sensemaking Templates:** Pre-built templates to kickstart your brainstorming sessions.
-  - **Export Options:** Export your board to PDF or JSON, and import back from JSON.
+  - **Export Options:** Export your board to PDF, PNG, SVG, or JSON, and import back from JSON.
+  - **Bulk Import:** Import CSV rows or Markdown bullets/headings as cards with a preview.
+  - **Movable Navigation:** Drag the toolbar to the left, right, top, or bottom edge; its position is remembered.
 - **Seamless Interactions:**
   - Zoom and pan across the canvas effortlessly.
   - Multi-select, group move, and bulk delete operations.
@@ -37,6 +42,8 @@ Speed up your workflow with these handy shortcuts:
 | --- | --- |
 | `V` | Select Tool |
 | `N` | Card Tool |
+| `T` | Standalone text tool |
+| `D` | Voting dot tool |
 | `S` | Shape Tool |
 | `C` | Connector Tool |
 | `G` | Cluster / Group Tool |
@@ -80,7 +87,13 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 - `npm run dev`: Starts the development server.
 - `npm run build`: Type-checks and builds the app for production.
 - `npm run lint`: Runs Oxlint to check for code quality.
+- `npm test`: Runs import, layout, and board-backup regression tests.
+- `npm run release:check`: Runs lint, tests, and the production build in one command.
 - `npm run preview`: Previews the production build locally.
+
+## Release status
+
+VisioSpace v1.0.0 includes the core canvas, cards, shapes, connectors, groups, standalone text, voting dots, templates, import/export, minimap, undo/redo, responsive dockable navigation, and release regression checks. Real-time multiplayer collaboration, live cursor presence, follow/spotlight mode, threaded comments, and richer text formatting remain planned for v2.
 
 ## License
 

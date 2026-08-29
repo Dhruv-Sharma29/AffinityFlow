@@ -1,12 +1,14 @@
 {
-  "name": "affinity-scaffold",
+  "name": "visiospace",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "node --experimental-strip-types --test tests/*.test.mts",
+    "release:check": "npm run lint && npm test && npm run build",
     "preview": "vite preview"
   },
   "dependencies": {
