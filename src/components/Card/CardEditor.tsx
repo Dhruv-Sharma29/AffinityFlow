@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useBoardStore } from '../../store/boardStore';
 import { CARD_COLORS } from '../../types/board';
 import type { CardColor } from '../../types/board';
+import { IconTrash } from '../Icons/Icons';
 import './CardEditor.css';
 
 export const CardEditor: React.FC = () => {
@@ -79,7 +80,7 @@ export const CardEditor: React.FC = () => {
           <span className="card-editor-label">Edit Card</span>
           <div className="card-editor-actions">
             <button className="card-editor-delete" onClick={handleDelete} title="Delete card">
-              🗑
+              <IconTrash size={16} />
             </button>
             <button className="card-editor-close" onClick={handleSave} title="Save & close (Esc)">
               ✕

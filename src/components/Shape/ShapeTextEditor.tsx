@@ -3,6 +3,7 @@ import { useBoardStore } from '../../store/boardStore';
 import { SHAPE_COLORS } from '../../types/board';
 import type { ShapeColor, ShapeType } from '../../types/board';
 import { getAllShapeDefinitions } from './shapeRegistry';
+import { IconTrash } from '../Icons/Icons';
 import './ShapeTextEditor.css';
 
 export const ShapeTextEditor: React.FC = () => {
@@ -81,7 +82,7 @@ export const ShapeTextEditor: React.FC = () => {
           <span className="shape-editor-label">Edit Shape</span>
           <div className="shape-editor-actions">
             <button className="shape-editor-delete" onClick={handleDelete} title="Delete shape">
-              🗑
+              <IconTrash size={16} />
             </button>
             <button className="shape-editor-close" onClick={handleSave} title="Save & close (Esc)">
               ✕
