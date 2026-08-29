@@ -69,7 +69,10 @@ interface BoardStore {
   editingShapeId: string | null;
   editingConnectorId: string | null;
   editingClusterId: string | null;
+<<<<<<< HEAD
   confirmDeleteCluster: ConfirmDeleteModalState | null;
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   connectingFromId: string | null;
   soundEnabled: boolean;
 
@@ -109,16 +112,26 @@ interface BoardStore {
   addCluster: (x: number, y: number, width?: number, height?: number, label?: string, color?: ClusterColor) => string;
   updateCluster: (id: string, updates: Partial<Cluster>) => void;
   deleteCluster: (id: string) => void;
+<<<<<<< HEAD
   deleteClusterWithContents: (id: string) => void;
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   groupSelected: () => string | null;
   ungroup: (id: string) => void;
   resizeCluster: (id: string, width: number, height: number, x?: number, y?: number) => void;
   duplicateCluster: (clusterId: string) => string | null;
+<<<<<<< HEAD
   moveCluster: (id: string, x: number, y: number) => void;
   bringClusterToFront: (id: string) => void;
   setEditingClusterId: (id: string | null) => void;
   openConfirmDeleteCluster: (clusterId: string) => void;
   closeConfirmDeleteCluster: () => void;
+=======
+  deleteClusterWithContents: (clusterId: string) => void;
+  moveCluster: (id: string, x: number, y: number) => void;
+  bringClusterToFront: (id: string) => void;
+  setEditingClusterId: (id: string | null) => void;
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 
   // Selection & Multi-drag
   setSelectedIds: (ids: string[]) => void;
@@ -190,7 +203,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   editingShapeId: null,
   editingConnectorId: null,
   editingClusterId: null,
+<<<<<<< HEAD
   confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   connectingFromId: null,
   soundEnabled: typeof window !== 'undefined' ? localStorage.getItem('affinity_sound') !== 'false' : true,
   history: [],
@@ -575,6 +591,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     if (get().soundEnabled) {
       SoundEffects.paperPlace();
     }
+<<<<<<< HEAD
 
     // Auto-adopt any existing cards/shapes within this area
     const adoptedCards = get().cards.filter(
@@ -602,6 +619,15 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         selectedIds: [id],
       };
     });
+=======
+    set(state => ({
+      clusters: [
+        ...state.clusters,
+        { id, label, x, y, width, height, color },
+      ],
+      selectedIds: [id],
+    }));
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     return id;
   },
 
@@ -625,7 +651,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       shapes: state.shapes.map(s => s.clusterId === id ? { ...s, clusterId: undefined } : s),
       selectedIds: state.selectedIds.filter(s => s !== id),
       editingClusterId: state.editingClusterId === id ? null : state.editingClusterId,
+<<<<<<< HEAD
       confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     }));
   },
 
@@ -644,7 +673,11 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     if (allItems.length === 0) return null;
 
     const PADDING_X = 28;
+<<<<<<< HEAD
     const PADDING_TOP = 44;
+=======
+    const PADDING_TOP = 42;
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     const PADDING_BOTTOM = 28;
 
     const minX = Math.min(...allItems.map(i => i.x)) - PADDING_X;
@@ -652,8 +685,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const maxX = Math.max(...allItems.map(i => i.x + i.width)) + PADDING_X;
     const maxY = Math.max(...allItems.map(i => i.y + i.height)) + PADDING_BOTTOM;
 
+<<<<<<< HEAD
     const width = Math.max(280, maxX - minX);
     const height = Math.max(180, maxY - minY);
+=======
+    const width = Math.max(160, maxX - minX);
+    const height = Math.max(120, maxY - minY);
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 
     const id = uuidv4();
     const nextGroupNum = clusters.length + 1;
@@ -711,7 +749,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       shapes: state.shapes.map(s => s.clusterId === id ? { ...s, clusterId: undefined } : s),
       selectedIds: [...memberCardIds, ...memberShapeIds],
       editingClusterId: state.editingClusterId === id ? null : state.editingClusterId,
+<<<<<<< HEAD
       confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     }));
   },
 
@@ -722,8 +763,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         c.id === id
           ? {
               ...c,
+<<<<<<< HEAD
               width: Math.max(100, Math.round(width)),
               height: Math.max(80, Math.round(height)),
+=======
+              width: Math.max(80, Math.round(width)),
+              height: Math.max(60, Math.round(height)),
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
               ...(x !== undefined ? { x: Math.round(x) } : {}),
               ...(y !== undefined ? { y: Math.round(y) } : {}),
             }
@@ -854,7 +900,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       ),
       selectedIds: state.selectedIds.filter(id => id !== clusterId && !removedItemIds.has(id)),
       editingClusterId: state.editingClusterId === clusterId ? null : state.editingClusterId,
+<<<<<<< HEAD
       confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     }));
   },
 
@@ -904,6 +953,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
   setEditingClusterId: (id) => set({ editingClusterId: id }),
 
+<<<<<<< HEAD
   openConfirmDeleteCluster: (clusterId: string) => {
     const { clusters, cards } = get();
     const cluster = clusters.find(c => c.id === clusterId);
@@ -925,6 +975,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
   closeConfirmDeleteCluster: () => set({ confirmDeleteCluster: null }),
 
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   // ── Selection & Multi-drag ───────────────────────────────────────
   setSelectedIds: (ids) => set({ selectedIds: ids }),
 
@@ -936,6 +988,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     }));
   },
 
+<<<<<<< HEAD
   clearSelection: () => set({
     selectedIds: [],
     editingCardId: null,
@@ -943,6 +996,9 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     editingConnectorId: null,
     editingClusterId: null,
   }),
+=======
+  clearSelection: () => set({ selectedIds: [], editingCardId: null, editingShapeId: null, editingConnectorId: null, editingClusterId: null }),
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 
   deleteSelected: () => {
     const { selectedIds, cards, shapes, connectors, clusters } = get();
@@ -965,6 +1021,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const clusterIds = new Set(selectedIds.filter(id => clusters.some(c => c.id === id)));
     const removedItemIds = new Set([...cardIds, ...shapeIds]);
 
+<<<<<<< HEAD
     set(state => {
       const nextCards = state.cards.filter(c => !cardIds.has(c.id));
       const nextShapes = state.shapes.filter(s => !shapeIds.has(s.id));
@@ -985,6 +1042,21 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         editingClusterId: null,
       };
     });
+=======
+    set(state => ({
+      cards: state.cards.filter(c => !cardIds.has(c.id)),
+      shapes: state.shapes.filter(s => !shapeIds.has(s.id)),
+      connectors: state.connectors.filter(
+        c => !connectorIds.has(c.id) && !removedItemIds.has(c.fromCardId) && !removedItemIds.has(c.toCardId)
+      ),
+      clusters: state.clusters.filter(c => !clusterIds.has(c.id)),
+      selectedIds: [],
+      editingCardId: null,
+      editingShapeId: null,
+      editingConnectorId: null,
+      editingClusterId: null,
+    }));
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   },
 
   moveMultipleItems: (dx, dy, itemIds) => {
@@ -1107,7 +1179,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
+<<<<<<< HEAD
       confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 
@@ -1125,7 +1200,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
+<<<<<<< HEAD
       confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 
@@ -1171,6 +1249,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
+<<<<<<< HEAD
       confirmDeleteCluster: null,
     });
   },
@@ -1290,6 +1369,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingShapeId: null,
       editingClusterId: null,
       confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 
@@ -1304,7 +1385,10 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
+<<<<<<< HEAD
       confirmDeleteCluster: null,
+=======
+>>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 }));

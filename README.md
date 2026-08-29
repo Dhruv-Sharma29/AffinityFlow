@@ -1,32 +1,87 @@
-# React + TypeScript + Vite
+# AffinityFlow
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+AffinityFlow is a powerful, infinite-canvas sensemaking and diagramming tool built with React, TypeScript, and Konva. It enables users to brainstorm, organize ideas with affinity mapping, create architecture diagrams, and visually connect thoughts on an infinite digital whiteboard.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Infinite Canvas:** Limitless space to explore and organize your ideas.
+- **Rich Elements:**
+  - **Cards:** Sticky note-like cards for brain-dumping and grouping.
+  - **Shapes:** Basic geometric shapes for diagramming (rectangles, circles, etc.).
+  - **Connectors:** Draw lines between cards and shapes with customizable labels.
+  - **Clusters:** Visually group related items together.
+- **Advanced Tools:**
+  - **Minimap:** A radar overview of the entire canvas to help you navigate.
+  - **Sensemaking Templates:** Pre-built templates to kickstart your brainstorming sessions.
+  - **Export Options:** Export your board to PDF or JSON, and import back from JSON.
+- **Seamless Interactions:**
+  - Zoom and pan across the canvas effortlessly.
+  - Multi-select, group move, and bulk delete operations.
+  - Full Undo/Redo support.
+  - Sound effects for satisfying interactions (can be toggled).
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework:** [React 19](https://react.dev/) with [Vite](https://vitejs.dev/)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Canvas Rendering:** [Konva](https://konvajs.org/) & [React-Konva](https://github.com/konvajs/react-konva)
+- **State Management:** [Zustand](https://github.com/pmndrs/zustand)
+- **Exports:** [jsPDF](https://github.com/parallax/jsPDF)
+- **Linting:** [Oxlint](https://oxc.rs/docs/guide/usage/linter.html)
 
-## Expanding the Oxlint configuration
+## Keyboard Shortcuts
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Speed up your workflow with these handy shortcuts:
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+| Shortcut | Action |
+| --- | --- |
+| `V` | Select Tool |
+| `N` | Card Tool |
+| `S` | Shape Tool |
+| `C` | Connector Tool |
+| `G` | Cluster / Group Tool |
+| `H` or `Space` | Hand / Pan Tool |
+| `Cmd/Ctrl + Z` | Undo |
+| `Cmd/Ctrl + Shift + Z` | Redo |
+| `Cmd/Ctrl + Y` | Redo |
+| `Cmd/Ctrl + E` | Export Board |
+| `F` | Zoom to Fit |
+| `+` / `-` | Zoom In / Out |
+| `Delete` / `Backspace` | Delete Selected Item(s) |
+| `Esc` | Cancel Current Action / Deselect |
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Getting Started
+
+### Prerequisites
+
+Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
+
+### Installation
+
+1. Clone the repository and navigate to the project directory:
+   ```bash
+   cd "affinity map"
+   ```
+
+2. Install the dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open your browser and visit `http://localhost:5173` to start creating!
+
+## Scripts
+
+- `npm run dev`: Starts the development server.
+- `npm run build`: Type-checks and builds the app for production.
+- `npm run lint`: Runs Oxlint to check for code quality.
+- `npm run preview`: Previews the production build locally.
+
+## License
+
+This project is licensed under the terms of the LICENSE file included in the repository.
