@@ -4,7 +4,7 @@ import { CARD_COLORS, SHAPE_COLORS, CLUSTER_COLORS } from '../../types/board';
 import type { CardColor, ShapeColor, ShapeType, ClusterColor } from '../../types/board';
 import {
   IconEdit, IconTrash, IconCopy, IconLink, IconUnlink,
-  IconPalette, IconBringToFront, IconShape, IconGroup, IconStickyNote,
+  IconPalette, IconShape, IconGroup, IconStickyNote,
 } from '../Icons/Icons';
 import { getAllShapeDefinitions } from '../Shape/shapeRegistry';
 import './ContextMenu.css';
@@ -37,7 +37,6 @@ export const ContextMenu: React.FC = () => {
     openConfirmDeleteCluster,
     unlinkCard, ungroup, groupSelected, duplicateCluster,
     updateCard, updateShape, updateCluster,
-    bringToFront, bringShapeToFront, bringClusterToFront,
     addCard, addShape, addCardToCluster,
     setActiveTool, setConnectingFromId,
   } = useBoardStore();
@@ -147,12 +146,6 @@ export const ContextMenu: React.FC = () => {
         action: () => { ungroup(targetId); close(); },
       },
       {
-        label: 'Bring to Front',
-        icon: <IconBringToFront size={15} />,
-        action: () => { bringClusterToFront(targetId); close(); },
-        dividerAfter: true,
-      },
-      {
         label: 'Delete Group…',
         icon: <IconTrash size={15} />,
         action: () => { openConfirmDeleteCluster(targetId); close(); },
@@ -207,12 +200,6 @@ export const ContextMenu: React.FC = () => {
     }
 
     menuItems.push(
-      {
-        label: 'Bring to Front',
-        icon: <IconBringToFront size={15} />,
-        action: () => { bringToFront(targetId); close(); },
-        dividerAfter: true,
-      },
       {
         label: 'Delete',
         icon: <IconTrash size={15} />,
@@ -282,12 +269,6 @@ export const ContextMenu: React.FC = () => {
     }
 
     menuItems.push(
-      {
-        label: 'Bring to Front',
-        icon: <IconBringToFront size={15} />,
-        action: () => { bringShapeToFront(targetId); close(); },
-        dividerAfter: true,
-      },
       {
         label: 'Delete',
         icon: <IconTrash size={15} />,

@@ -9,7 +9,6 @@ import {
   IconLink,
   IconUnlink,
   IconPalette,
-  IconBringToFront,
 } from '../Icons/Icons';
 import { getShapeDefinition, getAllShapeDefinitions } from './shapeRegistry';
 import './ShapeFormatBar.css';
@@ -28,7 +27,6 @@ export const ShapeFormatBar: React.FC = () => {
     setActiveTool,
     setConnectingFromId,
     unlinkCard,
-    bringShapeToFront,
   } = useBoardStore();
 
   const [showColors, setShowColors] = useState(false);
@@ -145,15 +143,6 @@ export const ShapeFormatBar: React.FC = () => {
           <IconUnlink size={16} />
         </button>
       )}
-
-      {/* Bring to Front */}
-      <button
-        className="shape-format-btn"
-        onClick={() => bringShapeToFront(selectedShape.id)}
-        title="Bring to Front"
-      >
-        <IconBringToFront size={16} />
-      </button>
 
       {/* Duplicate */}
       <button

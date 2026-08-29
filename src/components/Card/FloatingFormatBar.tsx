@@ -3,7 +3,7 @@ import { useBoardStore } from '../../store/boardStore';
 import { CARD_COLORS } from '../../types/board';
 import type { CardColor } from '../../types/board';
 import {
-  IconEdit, IconTrash, IconCopy, IconLink, IconUnlink, IconPalette, IconBringToFront,
+  IconEdit, IconTrash, IconCopy, IconLink, IconUnlink, IconPalette,
 } from '../Icons/Icons';
 import './FloatingFormatBar.css';
 
@@ -11,7 +11,7 @@ export const FloatingFormatBar: React.FC = () => {
   const {
     cards, connectors, selectedIds, viewport, editingCardId,
     updateCard, deleteCard, addCard, setEditingCardId,
-    setActiveTool, setConnectingFromId, unlinkCard, bringToFront,
+    setActiveTool, setConnectingFromId, unlinkCard,
   } = useBoardStore();
 
   const [showColors, setShowColors] = useState(false);
@@ -102,15 +102,6 @@ export const FloatingFormatBar: React.FC = () => {
           <IconUnlink size={16} />
         </button>
       )}
-
-      {/* Bring to Front */}
-      <button
-        className="floating-bar-btn"
-        onClick={() => bringToFront(selectedCard.id)}
-        title="Bring to Front"
-      >
-        <IconBringToFront size={16} />
-      </button>
 
       {/* Duplicate */}
       <button
