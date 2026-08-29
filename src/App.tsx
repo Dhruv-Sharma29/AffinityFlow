@@ -5,11 +5,13 @@ import { CardEditor } from './components/Card/CardEditor';
 import { CardDetailModal } from './components/Card/CardDetailModal';
 import { ShapeTextEditor } from './components/Shape/ShapeTextEditor';
 import { ConnectorLabelEditor } from './components/Connector/ConnectorLabelEditor';
+import { ClusterEditor } from './components/Cluster/ClusterEditor';
 import { ExportModal } from './components/Export/ExportModal';
 import { TemplateModal } from './components/Template/TemplateModal';
 import { ContextMenu } from './components/ContextMenu/ContextMenu';
 import { FloatingFormatBar } from './components/Card/FloatingFormatBar';
 import { ShapeFormatBar } from './components/Shape/ShapeFormatBar';
+import { ClusterFormatBar } from './components/Cluster/ClusterFormatBar';
 import { Minimap } from './components/Minimap/Minimap';
 import { useBoardStore } from './store/boardStore';
 import type { Tool } from './types/board';
@@ -31,11 +33,15 @@ function App() {
     deleteSelected,
     undo,
     redo,
+    groupSelected,
+    ungroup,
     editingCardId,
     viewingCardId,
     editingShapeId,
     editingConnectorId,
+    editingClusterId,
     selectedIds,
+    clusters,
     activeTool,
     connectingFromId,
     setConnectingFromId,
@@ -47,8 +53,8 @@ function App() {
   // ─── Keyboard shortcuts ────────────────────────────────────────
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Don't capture shortcuts when editing a card/shape/connector or export/templates is open
-      if (editingCardId || viewingCardId || editingShapeId || editingConnectorId || exportOpen || templatesOpen) return;
+      // Don't capture shortcuts when editing a card/shape/connector/cluster or export/templates is open
+      if (editingCardId || viewingCardId || editingShapeId || editingConnectorId || editingClusterId || exportOpen || templatesOpen) return;
 
       // Don't capture when typing in an input/textarea
       const tag = (e.target as HTMLElement).tagName;
@@ -60,6 +66,36 @@ function App() {
       if (key === 'e' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setExportOpen(true);
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + G → ungroup
+      if (key === 'g' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+        e.preventDefault();
+        const selectedCluster = clusters.find(c => selectedIds.includes(c.id));
+        if (selectedCluster) {
+          ungroup(selectedCluster.id);
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + G → group selected
+      if (key === 'g' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+        e.preventDefault();
+        if (selectedIds.length > 0) {
+          groupSelected();
+        }
+        return;
+      }
+
+      // Single G key: if items selected, group them; otherwise toggle cluster tool
+      if (key === 'g' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        if (selectedIds.length > 0) {
+          groupSelected();
+        } else {
+          setActiveTool(activeTool === 'cluster' ? 'select' : 'cluster');
+        }
         return;
       }
 
@@ -131,18 +167,18 @@ function App() {
         return;
       }
     },
-    [editingCardId, viewingCardId, editingShapeId, selectedIds, deleteSelected, undo, redo, setActiveTool, connectingFromId, setConnectingFromId, exportOpen]
+    [editingCardId, viewingCardId, editingShapeId, editingConnectorId, editingClusterId, selectedIds, clusters, groupSelected, ungroup, deleteSelected, undo, redo, activeTool, setActiveTool, connectingFromId, setConnectingFromId, exportOpen, templatesOpen]
   );
 
   const handleKeyUp = useCallback(
     (e: KeyboardEvent) => {
-      if (editingCardId || editingShapeId) return;
+      if (editingCardId || editingShapeId || editingClusterId) return;
       // Release space → back to select
       if (e.key === ' ' && activeTool === 'hand') {
         setActiveTool('select');
       }
     },
-    [activeTool, setActiveTool, editingCardId, editingShapeId]
+    [activeTool, setActiveTool, editingCardId, editingShapeId, editingClusterId]
   );
 
   useEffect(() => {
@@ -170,11 +206,11 @@ function App() {
       {/* Hint bar (contextual) */}
       <div className="app-hint-bar">
         {activeTool === 'select' && !selectedIds.length && (
-          <span><kbd>Double-click</kbd> to add a card · Scroll to zoom · <kbd>N</kbd> new card · <kbd>S</kbd> shape · <kbd>C</kbd> connect</span>
+          <span><kbd>Double-click</kbd> to add a card · Scroll to zoom · <kbd>N</kbd> new card · <kbd>S</kbd> shape · <kbd>G</kbd> group · <kbd>C</kbd> connect</span>
         )}
         {activeTool === 'select' && selectedIds.length > 0 && (
           <span>
-            {selectedIds.length} selected · <kbd>Delete</kbd> remove · <kbd>Shift</kbd>+click multi-select · Drag handles to resize · Right-click for options
+            {selectedIds.length} selected · <kbd>G</kbd> / <kbd>⌘G</kbd> group · <kbd>Delete</kbd> remove · <kbd>Shift</kbd>+click multi-select · Drag handles to resize · Right-click for options
           </span>
         )}
         {activeTool === 'card' && (
@@ -190,7 +226,7 @@ function App() {
           <span>Click another card or shape to connect · <kbd>Esc</kbd> cancel</span>
         )}
         {activeTool === 'cluster' && (
-          <span>Click to place a group · <kbd>Esc</kbd> cancel</span>
+          <span>Click or drag to create a group container · <kbd>Esc</kbd> cancel</span>
         )}
         {activeTool === 'hand' && (
           <span>Drag to pan · Release <kbd>Space</kbd> to return</span>
@@ -218,11 +254,17 @@ function App() {
       {/* Connector Label Editor */}
       <ConnectorLabelEditor />
 
+      {/* Cluster / Group Editor */}
+      <ClusterEditor />
+
       {/* Floating Format Bar for selected card */}
       <FloatingFormatBar />
 
       {/* Floating Format Bar for selected shape */}
       <ShapeFormatBar />
+
+      {/* Floating Format Bar for selected cluster/group */}
+      <ClusterFormatBar />
 
       {/* Context Menu */}
       <ContextMenu />
