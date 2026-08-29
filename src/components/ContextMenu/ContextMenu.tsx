@@ -4,11 +4,7 @@ import { CARD_COLORS, SHAPE_COLORS, CLUSTER_COLORS } from '../../types/board';
 import type { CardColor, ShapeColor, ShapeType, ClusterColor } from '../../types/board';
 import {
   IconEdit, IconTrash, IconCopy, IconLink, IconUnlink,
-<<<<<<< HEAD
   IconPalette, IconBringToFront, IconShape, IconGroup, IconStickyNote,
-=======
-  IconPalette, IconBringToFront, IconShape, IconGroup,
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 } from '../Icons/Icons';
 import { getAllShapeDefinitions } from '../Shape/shapeRegistry';
 import './ContextMenu.css';
@@ -37,20 +33,12 @@ export const ContextMenu: React.FC = () => {
     cards, shapes, connectors, clusters,
     selectedIds, setSelectedIds,
     setEditingCardId, setEditingShapeId, setEditingClusterId,
-<<<<<<< HEAD
     deleteCard, deleteShape, deleteConnector,
     openConfirmDeleteCluster,
     unlinkCard, ungroup, groupSelected, duplicateCluster,
     updateCard, updateShape, updateCluster,
     bringToFront, bringShapeToFront, bringClusterToFront,
     addCard, addShape, addCardToCluster,
-=======
-    deleteCard, deleteShape, deleteConnector, deleteCluster, deleteClusterWithContents,
-    unlinkCard, ungroup, groupSelected, duplicateCluster,
-    updateCard, updateShape, updateCluster,
-    bringToFront, bringShapeToFront, bringClusterToFront,
-    addCard, addShape,
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     setActiveTool, setConnectingFromId,
   } = useBoardStore();
 
@@ -130,14 +118,11 @@ export const ContextMenu: React.FC = () => {
   if (targetCluster) {
     menuItems.push(
       {
-<<<<<<< HEAD
         label: 'Add Card to Group',
         icon: <IconStickyNote size={15} />,
         action: () => { addCardToCluster(targetId); close(); },
       },
       {
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
         label: 'Edit Group Label',
         icon: <IconEdit size={15} />,
         action: () => { setEditingClusterId(targetId); close(); },
@@ -168,20 +153,9 @@ export const ContextMenu: React.FC = () => {
         dividerAfter: true,
       },
       {
-<<<<<<< HEAD
         label: 'Delete Group…',
         icon: <IconTrash size={15} />,
         action: () => { openConfirmDeleteCluster(targetId); close(); },
-=======
-        label: 'Delete Group Container',
-        icon: <IconTrash size={15} />,
-        action: () => { deleteCluster(targetId); close(); },
-      },
-      {
-        label: 'Delete Group & All Contents',
-        icon: <IconTrash size={15} />,
-        action: () => { deleteClusterWithContents(targetId); close(); },
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
         danger: true,
       },
     );

@@ -69,10 +69,7 @@ interface BoardStore {
   editingShapeId: string | null;
   editingConnectorId: string | null;
   editingClusterId: string | null;
-<<<<<<< HEAD
   confirmDeleteCluster: ConfirmDeleteModalState | null;
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   connectingFromId: string | null;
   soundEnabled: boolean;
 
@@ -112,26 +109,16 @@ interface BoardStore {
   addCluster: (x: number, y: number, width?: number, height?: number, label?: string, color?: ClusterColor) => string;
   updateCluster: (id: string, updates: Partial<Cluster>) => void;
   deleteCluster: (id: string) => void;
-<<<<<<< HEAD
   deleteClusterWithContents: (id: string) => void;
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   groupSelected: () => string | null;
   ungroup: (id: string) => void;
   resizeCluster: (id: string, width: number, height: number, x?: number, y?: number) => void;
   duplicateCluster: (clusterId: string) => string | null;
-<<<<<<< HEAD
   moveCluster: (id: string, x: number, y: number) => void;
   bringClusterToFront: (id: string) => void;
   setEditingClusterId: (id: string | null) => void;
   openConfirmDeleteCluster: (clusterId: string) => void;
   closeConfirmDeleteCluster: () => void;
-=======
-  deleteClusterWithContents: (clusterId: string) => void;
-  moveCluster: (id: string, x: number, y: number) => void;
-  bringClusterToFront: (id: string) => void;
-  setEditingClusterId: (id: string | null) => void;
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 
   // Selection & Multi-drag
   setSelectedIds: (ids: string[]) => void;
@@ -175,7 +162,7 @@ function getMaxZIndex(cards: Card[], shapes: Shape[] = []): number {
 }
 
 function randomRotation(): number {
-  return (Math.random() - 0.5) * 6; // -3 to +3 degrees
+  return (Math.random() - 0.5) * 6;
 }
 
 function snapshot(cards: Card[], shapes: Shape[], connectors: Connector[], clusters: Cluster[]): HistoryEntry {
@@ -203,10 +190,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   editingShapeId: null,
   editingConnectorId: null,
   editingClusterId: null,
-<<<<<<< HEAD
   confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   connectingFromId: null,
   soundEnabled: typeof window !== 'undefined' ? localStorage.getItem('affinity_sound') !== 'false' : true,
   history: [],
@@ -227,7 +211,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const now = new Date().toISOString();
     const { clusters } = get();
 
-    // Auto-detect cluster if not explicitly passed
     let assignedClusterId = clusterId;
     if (!assignedClusterId) {
       const containing = clusters.find(
@@ -333,10 +316,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       const targetCard = state.cards.find(c => c.id === id);
       if (!targetCard) return state;
 
-      // Check if card joined, left, or moved within a cluster
       let updatedClusterId = targetCard.clusterId;
-
-      // Check if moved into a different cluster
       const currentContainingCluster = state.clusters.find(
         cl => x >= cl.x - 20 && x + targetCard.width <= cl.x + cl.width + 20 &&
               y >= cl.y - 20 && y + targetCard.height <= cl.y + cl.height + 20
@@ -345,7 +325,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       if (currentContainingCluster) {
         updatedClusterId = currentContainingCluster.id;
       } else if (targetCard.clusterId) {
-        // If card was in a cluster, check if it moved far outside (> 120px)
         const oldCluster = state.clusters.find(cl => cl.id === targetCard.clusterId);
         if (oldCluster) {
           const farOutside =
@@ -392,7 +371,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       SoundEffects.paperPlace();
     }
 
-    // Auto-detect cluster
     const containing = get().clusters.find(
       cl => x >= cl.x - 10 && x + shapeWidth <= cl.x + cl.width + 10 &&
             y >= cl.y - 10 && y + shapeHeight <= cl.y + cl.height + 10
@@ -591,9 +569,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     if (get().soundEnabled) {
       SoundEffects.paperPlace();
     }
-<<<<<<< HEAD
 
-    // Auto-adopt any existing cards/shapes within this area
     const adoptedCards = get().cards.filter(
       c => c.x >= x - 10 && c.x + c.width <= x + width + 10 &&
            c.y >= y - 10 && c.y + c.height <= y + height + 10
@@ -619,15 +595,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         selectedIds: [id],
       };
     });
-=======
-    set(state => ({
-      clusters: [
-        ...state.clusters,
-        { id, label, x, y, width, height, color },
-      ],
-      selectedIds: [id],
-    }));
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     return id;
   },
 
@@ -651,10 +618,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       shapes: state.shapes.map(s => s.clusterId === id ? { ...s, clusterId: undefined } : s),
       selectedIds: state.selectedIds.filter(s => s !== id),
       editingClusterId: state.editingClusterId === id ? null : state.editingClusterId,
-<<<<<<< HEAD
       confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     }));
   },
 
@@ -673,11 +637,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     if (allItems.length === 0) return null;
 
     const PADDING_X = 28;
-<<<<<<< HEAD
     const PADDING_TOP = 44;
-=======
-    const PADDING_TOP = 42;
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     const PADDING_BOTTOM = 28;
 
     const minX = Math.min(...allItems.map(i => i.x)) - PADDING_X;
@@ -685,13 +645,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const maxX = Math.max(...allItems.map(i => i.x + i.width)) + PADDING_X;
     const maxY = Math.max(...allItems.map(i => i.y + i.height)) + PADDING_BOTTOM;
 
-<<<<<<< HEAD
     const width = Math.max(280, maxX - minX);
     const height = Math.max(180, maxY - minY);
-=======
-    const width = Math.max(160, maxX - minX);
-    const height = Math.max(120, maxY - minY);
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 
     const id = uuidv4();
     const nextGroupNum = clusters.length + 1;
@@ -749,10 +704,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       shapes: state.shapes.map(s => s.clusterId === id ? { ...s, clusterId: undefined } : s),
       selectedIds: [...memberCardIds, ...memberShapeIds],
       editingClusterId: state.editingClusterId === id ? null : state.editingClusterId,
-<<<<<<< HEAD
       confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     }));
   },
 
@@ -763,13 +715,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         c.id === id
           ? {
               ...c,
-<<<<<<< HEAD
               width: Math.max(100, Math.round(width)),
               height: Math.max(80, Math.round(height)),
-=======
-              width: Math.max(80, Math.round(width)),
-              height: Math.max(60, Math.round(height)),
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
               ...(x !== undefined ? { x: Math.round(x) } : {}),
               ...(y !== undefined ? { y: Math.round(y) } : {}),
             }
@@ -900,10 +847,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       ),
       selectedIds: state.selectedIds.filter(id => id !== clusterId && !removedItemIds.has(id)),
       editingClusterId: state.editingClusterId === clusterId ? null : state.editingClusterId,
-<<<<<<< HEAD
       confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     }));
   },
 
@@ -953,7 +897,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
   setEditingClusterId: (id) => set({ editingClusterId: id }),
 
-<<<<<<< HEAD
   openConfirmDeleteCluster: (clusterId: string) => {
     const { clusters, cards } = get();
     const cluster = clusters.find(c => c.id === clusterId);
@@ -975,8 +918,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
   closeConfirmDeleteCluster: () => set({ confirmDeleteCluster: null }),
 
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   // ── Selection & Multi-drag ───────────────────────────────────────
   setSelectedIds: (ids) => set({ selectedIds: ids }),
 
@@ -988,7 +929,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     }));
   },
 
-<<<<<<< HEAD
   clearSelection: () => set({
     selectedIds: [],
     editingCardId: null,
@@ -996,15 +936,11 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     editingConnectorId: null,
     editingClusterId: null,
   }),
-=======
-  clearSelection: () => set({ selectedIds: [], editingCardId: null, editingShapeId: null, editingConnectorId: null, editingClusterId: null }),
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 
   deleteSelected: () => {
     const { selectedIds, cards, shapes, connectors, clusters } = get();
     if (selectedIds.length === 0) return;
 
-    // Check if exactly one cluster is selected or if cluster is in selection -> prompt confirmation
     const clusterInSelection = clusters.find(c => selectedIds.includes(c.id));
     if (clusterInSelection && selectedIds.length === 1) {
       get().openConfirmDeleteCluster(clusterInSelection.id);
@@ -1021,7 +957,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const clusterIds = new Set(selectedIds.filter(id => clusters.some(c => c.id === id)));
     const removedItemIds = new Set([...cardIds, ...shapeIds]);
 
-<<<<<<< HEAD
     set(state => {
       const nextCards = state.cards.filter(c => !cardIds.has(c.id));
       const nextShapes = state.shapes.filter(s => !shapeIds.has(s.id));
@@ -1042,21 +977,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
         editingClusterId: null,
       };
     });
-=======
-    set(state => ({
-      cards: state.cards.filter(c => !cardIds.has(c.id)),
-      shapes: state.shapes.filter(s => !shapeIds.has(s.id)),
-      connectors: state.connectors.filter(
-        c => !connectorIds.has(c.id) && !removedItemIds.has(c.fromCardId) && !removedItemIds.has(c.toCardId)
-      ),
-      clusters: state.clusters.filter(c => !clusterIds.has(c.id)),
-      selectedIds: [],
-      editingCardId: null,
-      editingShapeId: null,
-      editingConnectorId: null,
-      editingClusterId: null,
-    }));
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   },
 
   moveMultipleItems: (dx, dy, itemIds) => {
@@ -1179,10 +1099,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
-<<<<<<< HEAD
       confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 
@@ -1200,10 +1117,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
-<<<<<<< HEAD
       confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 
@@ -1219,7 +1133,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const rawCards = state.cards || [];
     const rawShapes = state.shapes || [];
 
-    // Automatically associate cards with clusters by geometry if clusterId is missing
     const cardsWithClusterId = rawCards.map(card => {
       if (card.clusterId) return card;
       const containing = rawClusters.find(
@@ -1249,7 +1162,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
-<<<<<<< HEAD
       confirmDeleteCluster: null,
     });
   },
@@ -1264,7 +1176,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
     get().pushHistory();
 
-    // 1. Calculate offset so new template appears cleanly to the right of existing content
     const existingBounds = [
       ...existingCards.map(c => ({ x: c.x, y: c.y, w: c.width, h: c.height })),
       ...existingShapes.map(s => ({ x: s.x, y: s.y, w: s.width, h: s.height })),
@@ -1274,7 +1185,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const currentMaxX = Math.max(...existingBounds.map(b => b.x + b.w));
     const currentMinY = Math.min(...existingBounds.map(b => b.y));
 
-    // Template bounds
     const templateItems = [
       ...(templateState.cards || []).map(c => ({ x: c.x, y: c.y, w: c.width, h: c.height })),
       ...(templateState.shapes || []).map(s => ({ x: s.x, y: s.y, w: s.width, h: s.height })),
@@ -1288,7 +1198,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const offsetX = currentMaxX + SPACING - templateMinX;
     const offsetY = currentMinY - templateMinY;
 
-    // 2. Generate new UUIDs for all template items and map them
     const idMap = new Map<string, string>();
 
     const rawClusters = templateState.clusters || [];
@@ -1369,8 +1278,6 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingShapeId: null,
       editingClusterId: null,
       confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 
@@ -1385,10 +1292,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       editingCardId: null,
       editingShapeId: null,
       editingClusterId: null,
-<<<<<<< HEAD
       confirmDeleteCluster: null,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     });
   },
 }));

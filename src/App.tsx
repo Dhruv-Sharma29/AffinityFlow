@@ -6,10 +6,7 @@ import { CardDetailModal } from './components/Card/CardDetailModal';
 import { ShapeTextEditor } from './components/Shape/ShapeTextEditor';
 import { ConnectorLabelEditor } from './components/Connector/ConnectorLabelEditor';
 import { ClusterEditor } from './components/Cluster/ClusterEditor';
-<<<<<<< HEAD
 import { ConfirmDeleteModal } from './components/Cluster/ConfirmDeleteModal';
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 import { ExportModal } from './components/Export/ExportModal';
 import { TemplateModal } from './components/Template/TemplateModal';
 import { ContextMenu } from './components/ContextMenu/ContextMenu';
@@ -44,10 +41,7 @@ function App() {
     editingShapeId,
     editingConnectorId,
     editingClusterId,
-<<<<<<< HEAD
     confirmDeleteCluster,
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     selectedIds,
     clusters,
     activeTool,
@@ -61,7 +55,6 @@ function App() {
   // ─── Keyboard shortcuts ────────────────────────────────────────
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-<<<<<<< HEAD
       // Don't capture shortcuts when editing or modals are open
       if (
         editingCardId ||
@@ -75,10 +68,6 @@ function App() {
       ) {
         return;
       }
-=======
-      // Don't capture shortcuts when editing a card/shape/connector/cluster or export/templates is open
-      if (editingCardId || viewingCardId || editingShapeId || editingConnectorId || editingClusterId || exportOpen || templatesOpen) return;
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
 
       // Don't capture when typing in an input/textarea
       const tag = (e.target as HTMLElement).tagName;
@@ -191,7 +180,6 @@ function App() {
         return;
       }
     },
-<<<<<<< HEAD
     [
       editingCardId,
       viewingCardId,
@@ -213,9 +201,6 @@ function App() {
       exportOpen,
       templatesOpen,
     ]
-=======
-    [editingCardId, viewingCardId, editingShapeId, editingConnectorId, editingClusterId, selectedIds, clusters, groupSelected, ungroup, deleteSelected, undo, redo, activeTool, setActiveTool, connectingFromId, setConnectingFromId, exportOpen, templatesOpen]
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
   );
 
   const handleKeyUp = useCallback(
@@ -314,12 +299,9 @@ function App() {
       {/* Floating Format Bar for selected cluster/group */}
       <ClusterFormatBar />
 
-<<<<<<< HEAD
       {/* Confirm Delete Group Modal */}
       <ConfirmDeleteModal />
 
-=======
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
       {/* Context Menu */}
       <ContextMenu />
 

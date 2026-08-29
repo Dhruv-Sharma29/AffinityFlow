@@ -33,10 +33,6 @@ export const InfiniteCanvas: React.FC = () => {
   const [drawingShapeStart, setDrawingShapeStart] = useState<{ x: number; y: number } | null>(null);
   const [drawingShapeCurrent, setDrawingShapeCurrent] = useState<{ x: number; y: number } | null>(null);
 
-  // Drag-to-draw state for clusters
-  const [drawingClusterStart, setDrawingClusterStart] = useState<{ x: number; y: number } | null>(null);
-  const [drawingClusterCurrent, setDrawingClusterCurrent] = useState<{ x: number; y: number } | null>(null);
-
   // Marquee selection state
   const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
   const [marqueeCurrent, setMarqueeCurrent] = useState<{ x: number; y: number } | null>(null);
@@ -48,11 +44,7 @@ export const InfiniteCanvas: React.FC = () => {
     selectedIds, setSelectedIds, clearSelection,
     addCard, moveCard, bringToFront,
     addShape, moveShape, resizeShape, bringShapeToFront,
-<<<<<<< HEAD
     addCluster, moveCluster, resizeCluster, bringClusterToFront,
-=======
-    addCluster, moveCluster, resizeCluster, bringClusterToFront, setEditingClusterId,
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
     editingCardId, setEditingCardId,
     editingShapeId, setEditingShapeId,
     setEditingClusterId,
@@ -140,15 +132,9 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
-<<<<<<< HEAD
       if (activeTool === 'shape') {
         setDrawingShapeStart({ x: worldX, y: worldY });
         setDrawingShapeCurrent({ x: worldX, y: worldY });
-=======
-      if (activeTool === 'cluster') {
-        setDrawingClusterStart({ x: worldX, y: worldY });
-        setDrawingClusterCurrent({ x: worldX, y: worldY });
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
         return;
       }
 
@@ -214,11 +200,7 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
-<<<<<<< HEAD
       // If drawing a cluster, update current drag point
-=======
-      // If drawing a cluster, update the current drag point
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
       if (drawingClusterStart) {
         const stage = stageRef.current;
         if (!stage) return;
@@ -313,23 +295,14 @@ export const InfiniteCanvas: React.FC = () => {
 
       let finalId = '';
       if (dragWidth < 15 && dragHeight < 15) {
-<<<<<<< HEAD
-=======
-        // Single click: place default sized cluster centered at click
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
         const defaultW = 320;
         const defaultH = 220;
         finalId = addCluster(startX - defaultW / 2, startY - defaultH / 2, defaultW, defaultH);
       } else {
         const x = Math.min(startX, currentX);
         const y = Math.min(startY, currentY);
-<<<<<<< HEAD
         const width = Math.max(100, dragWidth);
         const height = Math.max(80, dragHeight);
-=======
-        const width = Math.max(80, dragWidth);
-        const height = Math.max(60, dragHeight);
->>>>>>> 44a350b4f7db5dfc5ab68d135bbbc9de77169828
         finalId = addCluster(x, y, width, height);
       }
 
