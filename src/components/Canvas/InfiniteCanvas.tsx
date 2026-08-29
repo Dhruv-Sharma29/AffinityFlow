@@ -655,32 +655,6 @@ export const InfiniteCanvas: React.FC = () => {
         )}
       </Layer>
 
-      {/* Connectors layer */}
-      <Layer>
-        {connectors.map(conn => {
-          const fromItem = cards.find(c => c.id === conn.fromCardId) || shapes.find(s => s.id === conn.fromCardId);
-          const toItem = cards.find(c => c.id === conn.toCardId) || shapes.find(s => s.id === conn.toCardId);
-          if (!fromItem || !toItem) return null;
-          return (
-            <ConnectorLine
-              key={conn.id}
-              connector={conn}
-              fromItem={fromItem}
-              toItem={toItem}
-              isSelected={selectedIds.includes(conn.id)}
-              onSelect={(id) => setSelectedIds([id])}
-            />
-          );
-        })}
-        {connectingSourceItem && (
-          <ConnectorCreator
-            fromItem={connectingSourceItem}
-            stageRef={stageRef}
-            viewport={viewport}
-          />
-        )}
-      </Layer>
-
       {/* Shapes layer */}
       <Layer>
         {sortedShapes.map(shape => (
@@ -746,6 +720,32 @@ export const InfiniteCanvas: React.FC = () => {
             fill="rgba(163, 49, 43, 0.08)"
             cornerRadius={2}
             listening={false}
+          />
+        )}
+      </Layer>
+
+      {/* Connectors layer (Yarn strings & mid-point annotation tags rendered on top) */}
+      <Layer>
+        {connectors.map(conn => {
+          const fromItem = cards.find(c => c.id === conn.fromCardId) || shapes.find(s => s.id === conn.fromCardId);
+          const toItem = cards.find(c => c.id === conn.toCardId) || shapes.find(s => s.id === conn.toCardId);
+          if (!fromItem || !toItem) return null;
+          return (
+            <ConnectorLine
+              key={conn.id}
+              connector={conn}
+              fromItem={fromItem}
+              toItem={toItem}
+              isSelected={selectedIds.includes(conn.id)}
+              onSelect={(id) => setSelectedIds([id])}
+            />
+          );
+        })}
+        {connectingSourceItem && (
+          <ConnectorCreator
+            fromItem={connectingSourceItem}
+            stageRef={stageRef}
+            viewport={viewport}
           />
         )}
       </Layer>
