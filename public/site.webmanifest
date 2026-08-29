@@ -1,0 +1,22 @@
+{
+  "name": "VisioSpace — Collaborative Canvas",
+  "short_name": "VisioSpace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#13253d",
+  "theme_color": "#b8804f",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "360x360",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
