@@ -33,6 +33,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOp
     undo, redo,
     history, historyIndex,
     cards, shapes,
+    selectedIds,
+    groupSelected,
     importFromJSON,
     soundEnabled, toggleSound,
   } = useBoardStore();
@@ -57,6 +59,16 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({ onOpenExport, onOp
   ];
 
   const handleToolClick = (toolId: Tool) => {
+    if (toolId === 'cluster') {
+      if (selectedIds.length > 0) {
+        groupSelected();
+        return;
+      }
+      setShapeMenuOpen(false);
+      setActiveTool(activeTool === 'cluster' ? 'select' : 'cluster');
+      return;
+    }
+
     if (toolId === 'shape') {
       if (activeTool === 'shape') {
         setShapeMenuOpen(!shapeMenuOpen);

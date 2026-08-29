@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   Card, Shape, Connector, Cluster, Tool, Viewport,
-  CardColor, ShapeType, ShapeColor, ConnectorColor, ConnectorStyle,
+  CardColor, ShapeType, ShapeColor, ConnectorColor, ConnectorStyle, ClusterColor,
   BoardState, HistoryEntry,
 } from '../types/board';
 import { getShapeDefinition } from '../components/Shape/shapeRegistry';
@@ -12,6 +12,46 @@ import { SoundEffects } from '../utils/soundEffects';
 const MAX_HISTORY = 50;
 const DEFAULT_CARD_WIDTH = 220;
 const DEFAULT_CARD_HEIGHT = 140;
+
+export interface ConfirmDeleteModalState {
+  isOpen: boolean;
+  clusterId: string;
+  clusterLabel: string;
+  cardCount: number;
+}
+
+// ─── Dynamic Auto-Resize Helper ────────────────────────────────────
+function recalculateClusters(clusters: Cluster[], cards: Card[], shapes: Shape[] = []): Cluster[] {
+  return clusters.map(cl => {
+    const memberCards = cards.filter(c => c.clusterId === cl.id);
+    const memberShapes = shapes.filter(s => s.clusterId === cl.id);
+    const memberItems = [
+      ...memberCards.map(c => ({ x: c.x, y: c.y, width: c.width, height: c.height })),
+      ...memberShapes.map(s => ({ x: s.x, y: s.y, width: s.width, height: s.height })),
+    ];
+
+    if (memberItems.length === 0) {
+      return cl;
+    }
+
+    const PADDING_X = 28;
+    const PADDING_TOP = 46;
+    const PADDING_BOTTOM = 28;
+
+    const minX = Math.min(...memberItems.map(i => i.x)) - PADDING_X;
+    const minY = Math.min(...memberItems.map(i => i.y)) - PADDING_TOP;
+    const maxX = Math.max(...memberItems.map(i => i.x + i.width)) + PADDING_X;
+    const maxY = Math.max(...memberItems.map(i => i.y + i.height)) + PADDING_BOTTOM;
+
+    return {
+      ...cl,
+      x: Math.round(minX),
+      y: Math.round(minY),
+      width: Math.max(280, Math.round(maxX - minX)),
+      height: Math.max(180, Math.round(maxY - minY)),
+    };
+  });
+}
 
 // ─── Store Interface ────────────────────────────────────────────────
 interface BoardStore {
@@ -28,6 +68,8 @@ interface BoardStore {
   viewingCardId: string | null;
   editingShapeId: string | null;
   editingConnectorId: string | null;
+  editingClusterId: string | null;
+  confirmDeleteCluster: ConfirmDeleteModalState | null;
   connectingFromId: string | null;
   soundEnabled: boolean;
 
@@ -39,7 +81,8 @@ interface BoardStore {
   toggleSound: () => void;
 
   // Card actions
-  addCard: (x: number, y: number, color?: CardColor) => string;
+  addCard: (x: number, y: number, color?: CardColor, clusterId?: string) => string;
+  addCardToCluster: (clusterId: string, color?: CardColor) => string;
   updateCard: (id: string, updates: Partial<Card>) => void;
   deleteCard: (id: string) => void;
   moveCard: (id: string, x: number, y: number) => void;
@@ -63,9 +106,19 @@ interface BoardStore {
   setEditingConnectorId: (id: string | null) => void;
 
   // Cluster actions
-  addCluster: (x: number, y: number) => string;
+  addCluster: (x: number, y: number, width?: number, height?: number, label?: string, color?: ClusterColor) => string;
   updateCluster: (id: string, updates: Partial<Cluster>) => void;
   deleteCluster: (id: string) => void;
+  deleteClusterWithContents: (id: string) => void;
+  groupSelected: () => string | null;
+  ungroup: (id: string) => void;
+  resizeCluster: (id: string, width: number, height: number, x?: number, y?: number) => void;
+  duplicateCluster: (clusterId: string) => string | null;
+  moveCluster: (id: string, x: number, y: number) => void;
+  bringClusterToFront: (id: string) => void;
+  setEditingClusterId: (id: string | null) => void;
+  openConfirmDeleteCluster: (clusterId: string) => void;
+  closeConfirmDeleteCluster: () => void;
 
   // Selection & Multi-drag
   setSelectedIds: (ids: string[]) => void;
@@ -97,6 +150,7 @@ interface BoardStore {
   // Serialization
   exportToJSON: () => BoardState;
   importFromJSON: (state: BoardState) => void;
+  loadTemplate: (state: BoardState, mode?: 'append' | 'replace') => void;
   clearBoard: () => void;
 }
 
@@ -135,6 +189,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   viewingCardId: null,
   editingShapeId: null,
   editingConnectorId: null,
+  editingClusterId: null,
+  confirmDeleteCluster: null,
   connectingFromId: null,
   soundEnabled: typeof window !== 'undefined' ? localStorage.getItem('affinity_sound') !== 'false' : true,
   history: [],
@@ -150,69 +206,151 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   },
 
   // ── Card Actions ────────────────────────────────────────────────
-  addCard: (x, y, color = 'cream') => {
+  addCard: (x, y, color = 'cream', clusterId) => {
     const id = uuidv4();
     const now = new Date().toISOString();
+    const { clusters } = get();
+
+    // Auto-detect cluster if not explicitly passed
+    let assignedClusterId = clusterId;
+    if (!assignedClusterId) {
+      const containing = clusters.find(
+        cl => x >= cl.x - 10 && x + DEFAULT_CARD_WIDTH <= cl.x + cl.width + 10 &&
+              y >= cl.y - 10 && y + DEFAULT_CARD_HEIGHT <= cl.y + cl.height + 10
+      );
+      if (containing) {
+        assignedClusterId = containing.id;
+      }
+    }
+
     get().pushHistory();
     if (get().soundEnabled) {
       SoundEffects.paperPlace();
       SoundEffects.pin();
     }
-    set(state => ({
-      cards: [
-        ...state.cards,
-        {
-          id,
-          x,
-          y,
-          width: DEFAULT_CARD_WIDTH,
-          height: DEFAULT_CARD_HEIGHT,
-          color,
-          title: '',
-          body: '',
-          eyebrow: '',
-          zIndex: getMaxZIndex(state.cards, state.shapes) + 1,
-          rotation: randomRotation(),
-          createdAt: now,
-          updatedAt: now,
-        },
-      ],
-      editingCardId: id,
-      editingShapeId: null,
-      selectedIds: [id],
-    }));
+
+    const newCard: Card = {
+      id,
+      x,
+      y,
+      width: DEFAULT_CARD_WIDTH,
+      height: DEFAULT_CARD_HEIGHT,
+      color,
+      title: '',
+      body: '',
+      eyebrow: '',
+      clusterId: assignedClusterId,
+      zIndex: getMaxZIndex(get().cards, get().shapes) + 1,
+      rotation: randomRotation(),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    set(state => {
+      const nextCards = [...state.cards, newCard];
+      const nextClusters = recalculateClusters(state.clusters, nextCards, state.shapes);
+      return {
+        cards: nextCards,
+        clusters: nextClusters,
+        editingCardId: id,
+        editingShapeId: null,
+        editingClusterId: null,
+        selectedIds: [id],
+      };
+    });
     return id;
+  },
+
+  addCardToCluster: (clusterId: string, color = 'cream') => {
+    const { clusters, cards } = get();
+    const targetCluster = clusters.find(c => c.id === clusterId);
+    if (!targetCluster) return '';
+
+    const memberCards = cards.filter(c => c.clusterId === clusterId);
+    let cardX = targetCluster.x + 28;
+    let cardY = targetCluster.y + 46;
+
+    if (memberCards.length > 0) {
+      const lastCard = memberCards[memberCards.length - 1];
+      cardX = lastCard.x;
+      cardY = lastCard.y + lastCard.height + 16;
+    }
+
+    return get().addCard(cardX, cardY, color, clusterId);
   },
 
   updateCard: (id, updates) => {
     get().pushHistory();
-    set(state => ({
-      cards: state.cards.map(c =>
+    set(state => {
+      const nextCards = state.cards.map(c =>
         c.id === id
           ? { ...c, ...updates, updatedAt: new Date().toISOString() }
           : c
-      ),
-    }));
+      );
+      const nextClusters = recalculateClusters(state.clusters, nextCards, state.shapes);
+      return {
+        cards: nextCards,
+        clusters: nextClusters,
+      };
+    });
   },
 
   deleteCard: (id) => {
     get().pushHistory();
-    set(state => ({
-      cards: state.cards.filter(c => c.id !== id),
-      connectors: state.connectors.filter(
-        c => c.fromCardId !== id && c.toCardId !== id
-      ),
-      selectedIds: state.selectedIds.filter(s => s !== id),
-      editingCardId: state.editingCardId === id ? null : state.editingCardId,
-    }));
+    set(state => {
+      const nextCards = state.cards.filter(c => c.id !== id);
+      const nextClusters = recalculateClusters(state.clusters, nextCards, state.shapes);
+      return {
+        cards: nextCards,
+        clusters: nextClusters,
+        connectors: state.connectors.filter(
+          c => c.fromCardId !== id && c.toCardId !== id
+        ),
+        selectedIds: state.selectedIds.filter(s => s !== id),
+        editingCardId: state.editingCardId === id ? null : state.editingCardId,
+      };
+    });
   },
 
   moveCard: (id, x, y) => {
-    set(state => ({
-      cards: state.cards.map(c =>
-        c.id === id ? { ...c, x, y, updatedAt: new Date().toISOString() } : c
-      ),
-    }));
+    set(state => {
+      const targetCard = state.cards.find(c => c.id === id);
+      if (!targetCard) return state;
+
+      // Check if card joined, left, or moved within a cluster
+      let updatedClusterId = targetCard.clusterId;
+
+      // Check if moved into a different cluster
+      const currentContainingCluster = state.clusters.find(
+        cl => x >= cl.x - 20 && x + targetCard.width <= cl.x + cl.width + 20 &&
+              y >= cl.y - 20 && y + targetCard.height <= cl.y + cl.height + 20
+      );
+
+      if (currentContainingCluster) {
+        updatedClusterId = currentContainingCluster.id;
+      } else if (targetCard.clusterId) {
+        // If card was in a cluster, check if it moved far outside (> 120px)
+        const oldCluster = state.clusters.find(cl => cl.id === targetCard.clusterId);
+        if (oldCluster) {
+          const farOutside =
+            x < oldCluster.x - 120 || x > oldCluster.x + oldCluster.width + 120 ||
+            y < oldCluster.y - 120 || y > oldCluster.y + oldCluster.height + 120;
+          if (farOutside) {
+            updatedClusterId = undefined;
+          }
+        }
+      }
+
+      const nextCards = state.cards.map(c =>
+        c.id === id ? { ...c, x, y, clusterId: updatedClusterId, updatedAt: new Date().toISOString() } : c
+      );
+
+      const nextClusters = recalculateClusters(state.clusters, nextCards, state.shapes);
+      return {
+        cards: nextCards,
+        clusters: nextClusters,
+      };
+    });
   },
 
   bringToFront: (id) => {
@@ -237,40 +375,57 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     if (get().soundEnabled) {
       SoundEffects.paperPlace();
     }
-    set(state => ({
-      shapes: [
-        ...state.shapes,
-        {
-          id,
-          type: shapeType,
-          x,
-          y,
-          width: shapeWidth,
-          height: shapeHeight,
-          color,
-          text,
-          rotation: 0,
-          zIndex: getMaxZIndex(state.cards, state.shapes) + 1,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ],
-      editingCardId: null,
-      editingShapeId: null,
-      selectedIds: [id],
-    }));
+
+    // Auto-detect cluster
+    const containing = get().clusters.find(
+      cl => x >= cl.x - 10 && x + shapeWidth <= cl.x + cl.width + 10 &&
+            y >= cl.y - 10 && y + shapeHeight <= cl.y + cl.height + 10
+    );
+
+    const newShape: Shape = {
+      id,
+      type: shapeType,
+      x,
+      y,
+      width: shapeWidth,
+      height: shapeHeight,
+      color,
+      text,
+      rotation: 0,
+      clusterId: containing ? containing.id : undefined,
+      zIndex: getMaxZIndex(get().cards, get().shapes) + 1,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    set(state => {
+      const nextShapes = [...state.shapes, newShape];
+      const nextClusters = recalculateClusters(state.clusters, state.cards, nextShapes);
+      return {
+        shapes: nextShapes,
+        clusters: nextClusters,
+        editingCardId: null,
+        editingShapeId: null,
+        selectedIds: [id],
+      };
+    });
     return id;
   },
 
   updateShape: (id, updates) => {
     get().pushHistory();
-    set(state => ({
-      shapes: state.shapes.map(s =>
+    set(state => {
+      const nextShapes = state.shapes.map(s =>
         s.id === id
           ? { ...s, ...updates, updatedAt: new Date().toISOString() }
           : s
-      ),
-    }));
+      );
+      const nextClusters = recalculateClusters(state.clusters, state.cards, nextShapes);
+      return {
+        shapes: nextShapes,
+        clusters: nextClusters,
+      };
+    });
   },
 
   deleteShape: (id) => {
@@ -278,28 +433,50 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     if (get().soundEnabled) {
       SoundEffects.deleteItem();
     }
-    set(state => ({
-      shapes: state.shapes.filter(s => s.id !== id),
-      connectors: state.connectors.filter(
-        c => c.fromCardId !== id && c.toCardId !== id
-      ),
-      selectedIds: state.selectedIds.filter(s => s !== id),
-      editingShapeId: state.editingShapeId === id ? null : state.editingShapeId,
-    }));
+    set(state => {
+      const nextShapes = state.shapes.filter(s => s.id !== id);
+      const nextClusters = recalculateClusters(state.clusters, state.cards, nextShapes);
+      return {
+        shapes: nextShapes,
+        clusters: nextClusters,
+        connectors: state.connectors.filter(
+          c => c.fromCardId !== id && c.toCardId !== id
+        ),
+        selectedIds: state.selectedIds.filter(s => s !== id),
+        editingShapeId: state.editingShapeId === id ? null : state.editingShapeId,
+      };
+    });
   },
 
   moveShape: (id, x, y) => {
-    set(state => ({
-      shapes: state.shapes.map(s =>
-        s.id === id ? { ...s, x, y, updatedAt: new Date().toISOString() } : s
-      ),
-    }));
+    set(state => {
+      const targetShape = state.shapes.find(s => s.id === id);
+      if (!targetShape) return state;
+
+      let updatedClusterId = targetShape.clusterId;
+      const currentContainingCluster = state.clusters.find(
+        cl => x >= cl.x - 20 && x + targetShape.width <= cl.x + cl.width + 20 &&
+              y >= cl.y - 20 && y + targetShape.height <= cl.y + cl.height + 20
+      );
+      if (currentContainingCluster) {
+        updatedClusterId = currentContainingCluster.id;
+      }
+
+      const nextShapes = state.shapes.map(s =>
+        s.id === id ? { ...s, x, y, clusterId: updatedClusterId, updatedAt: new Date().toISOString() } : s
+      );
+      const nextClusters = recalculateClusters(state.clusters, state.cards, nextShapes);
+      return {
+        shapes: nextShapes,
+        clusters: nextClusters,
+      };
+    });
   },
 
   resizeShape: (id, width, height, x, y, rotation) => {
     get().pushHistory();
-    set(state => ({
-      shapes: state.shapes.map(s =>
+    set(state => {
+      const nextShapes = state.shapes.map(s =>
         s.id === id
           ? {
               ...s,
@@ -311,8 +488,13 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
               updatedAt: new Date().toISOString(),
             }
           : s
-      ),
-    }));
+      );
+      const nextClusters = recalculateClusters(state.clusters, state.cards, nextShapes);
+      return {
+        shapes: nextShapes,
+        clusters: nextClusters,
+      };
+    });
   },
 
   bringShapeToFront: (id) => {
@@ -331,10 +513,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
   // ── Connector Actions ───────────────────────────────────────────
   addConnector: (fromCardId, toCardId, color = 'red', style = 'solid', label?: string) => {
-    // Prevent self-connection
     if (fromCardId === toCardId) return '';
 
-    // Prevent duplicate connections
     const existing = get().connectors.find(
       c =>
         (c.fromCardId === fromCardId && c.toCardId === toCardId) ||
@@ -389,18 +569,39 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   setEditingConnectorId: (id) => set({ editingConnectorId: id }),
 
   // ── Cluster Actions ─────────────────────────────────────────────
-  addCluster: (x, y) => {
+  addCluster: (x, y, width = 320, height = 220, label = 'New Group', color = 'slate') => {
     const id = uuidv4();
     get().pushHistory();
     if (get().soundEnabled) {
       SoundEffects.paperPlace();
     }
-    set(state => ({
-      clusters: [
-        ...state.clusters,
-        { id, label: 'New Group', x, y, width: 300, height: 200 },
-      ],
-    }));
+
+    // Auto-adopt any existing cards/shapes within this area
+    const adoptedCards = get().cards.filter(
+      c => c.x >= x - 10 && c.x + c.width <= x + width + 10 &&
+           c.y >= y - 10 && c.y + c.height <= y + height + 10
+    );
+    const adoptedShapes = get().shapes.filter(
+      s => s.x >= x - 10 && s.x + s.width <= x + width + 10 &&
+           s.y >= y - 10 && s.y + s.height <= y + height + 10
+    );
+
+    const adoptedCardIds = new Set(adoptedCards.map(c => c.id));
+    const adoptedShapeIds = new Set(adoptedShapes.map(s => s.id));
+
+    set(state => {
+      const updatedCards = state.cards.map(c => adoptedCardIds.has(c.id) ? { ...c, clusterId: id } : c);
+      const updatedShapes = state.shapes.map(s => adoptedShapeIds.has(s.id) ? { ...s, clusterId: id } : s);
+      const newCluster: Cluster = { id, label, x, y, width, height, color };
+      const nextClusters = recalculateClusters([...state.clusters, newCluster], updatedCards, updatedShapes);
+
+      return {
+        clusters: nextClusters,
+        cards: updatedCards,
+        shapes: updatedShapes,
+        selectedIds: [id],
+      };
+    });
     return id;
   },
 
@@ -420,9 +621,309 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     }
     set(state => ({
       clusters: state.clusters.filter(c => c.id !== id),
+      cards: state.cards.map(c => c.clusterId === id ? { ...c, clusterId: undefined } : c),
+      shapes: state.shapes.map(s => s.clusterId === id ? { ...s, clusterId: undefined } : s),
       selectedIds: state.selectedIds.filter(s => s !== id),
+      editingClusterId: state.editingClusterId === id ? null : state.editingClusterId,
+      confirmDeleteCluster: null,
     }));
   },
+
+  groupSelected: () => {
+    const { selectedIds, cards, shapes, clusters } = get();
+    const selectedCards = cards.filter(c => selectedIds.includes(c.id));
+    const selectedShapes = shapes.filter(s => selectedIds.includes(s.id));
+    const selectedClusters = clusters.filter(cl => selectedIds.includes(cl.id));
+
+    const allItems: { x: number; y: number; width: number; height: number }[] = [
+      ...selectedCards.map(c => ({ x: c.x, y: c.y, width: c.width, height: c.height })),
+      ...selectedShapes.map(s => ({ x: s.x, y: s.y, width: s.width, height: s.height })),
+      ...selectedClusters.map(cl => ({ x: cl.x, y: cl.y, width: cl.width, height: cl.height })),
+    ];
+
+    if (allItems.length === 0) return null;
+
+    const PADDING_X = 28;
+    const PADDING_TOP = 44;
+    const PADDING_BOTTOM = 28;
+
+    const minX = Math.min(...allItems.map(i => i.x)) - PADDING_X;
+    const minY = Math.min(...allItems.map(i => i.y)) - PADDING_TOP;
+    const maxX = Math.max(...allItems.map(i => i.x + i.width)) + PADDING_X;
+    const maxY = Math.max(...allItems.map(i => i.y + i.height)) + PADDING_BOTTOM;
+
+    const width = Math.max(280, maxX - minX);
+    const height = Math.max(180, maxY - minY);
+
+    const id = uuidv4();
+    const nextGroupNum = clusters.length + 1;
+    const label = `Group ${nextGroupNum}`;
+
+    get().pushHistory();
+    if (get().soundEnabled) {
+      SoundEffects.paperPlace();
+    }
+
+    const cardIdSet = new Set(selectedCards.map(c => c.id));
+    const shapeIdSet = new Set(selectedShapes.map(s => s.id));
+
+    set(state => ({
+      clusters: [
+        ...state.clusters,
+        { id, label, x: minX, y: minY, width, height, color: 'slate' },
+      ],
+      cards: state.cards.map(c => cardIdSet.has(c.id) ? { ...c, clusterId: id } : c),
+      shapes: state.shapes.map(s => shapeIdSet.has(s.id) ? { ...s, clusterId: id } : s),
+      selectedIds: [id],
+      activeTool: 'select',
+    }));
+
+    return id;
+  },
+
+  ungroup: (id) => {
+    const { clusters, cards, shapes } = get();
+    const target = clusters.find(c => c.id === id);
+    if (!target) return;
+
+    get().pushHistory();
+    if (get().soundEnabled) {
+      SoundEffects.deleteItem();
+    }
+
+    const memberCardIds = cards
+      .filter(c => c.clusterId === id || (
+        c.x >= target.x && c.x + c.width <= target.x + target.width &&
+        c.y >= target.y && c.y + c.height <= target.y + target.height
+      ))
+      .map(c => c.id);
+
+    const memberShapeIds = shapes
+      .filter(s => s.clusterId === id || (
+        s.x >= target.x && s.x + s.width <= target.x + target.width &&
+        s.y >= target.y && s.y + s.height <= target.y + target.height
+      ))
+      .map(s => s.id);
+
+    set(state => ({
+      clusters: state.clusters.filter(c => c.id !== id),
+      cards: state.cards.map(c => c.clusterId === id ? { ...c, clusterId: undefined } : c),
+      shapes: state.shapes.map(s => s.clusterId === id ? { ...s, clusterId: undefined } : s),
+      selectedIds: [...memberCardIds, ...memberShapeIds],
+      editingClusterId: state.editingClusterId === id ? null : state.editingClusterId,
+      confirmDeleteCluster: null,
+    }));
+  },
+
+  resizeCluster: (id, width, height, x, y) => {
+    get().pushHistory();
+    set(state => ({
+      clusters: state.clusters.map(c =>
+        c.id === id
+          ? {
+              ...c,
+              width: Math.max(100, Math.round(width)),
+              height: Math.max(80, Math.round(height)),
+              ...(x !== undefined ? { x: Math.round(x) } : {}),
+              ...(y !== undefined ? { y: Math.round(y) } : {}),
+            }
+          : c
+      ),
+    }));
+  },
+
+  duplicateCluster: (clusterId) => {
+    const { clusters, cards, shapes, connectors } = get();
+    const cluster = clusters.find(c => c.id === clusterId);
+    if (!cluster) return null;
+
+    const containedCards = cards.filter(
+      c => c.clusterId === cluster.id || (
+        c.x >= cluster.x - 10 && c.x + c.width <= cluster.x + cluster.width + 10 &&
+        c.y >= cluster.y - 10 && c.y + c.height <= cluster.y + cluster.height + 10
+      )
+    );
+    const containedShapes = shapes.filter(
+      s => s.clusterId === cluster.id || (
+        s.x >= cluster.x - 10 && s.x + s.width <= cluster.x + cluster.width + 10 &&
+        s.y >= cluster.y - 10 && s.y + s.height <= cluster.y + cluster.height + 10
+      )
+    );
+
+    const OFFSET = 40;
+    const newClusterId = uuidv4();
+    const idMap = new Map<string, string>();
+
+    const newCards: Card[] = containedCards.map(c => {
+      const newId = uuidv4();
+      idMap.set(c.id, newId);
+      return {
+        ...c,
+        id: newId,
+        clusterId: newClusterId,
+        x: c.x + OFFSET,
+        y: c.y + OFFSET,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    const newShapes: Shape[] = containedShapes.map(s => {
+      const newId = uuidv4();
+      idMap.set(s.id, newId);
+      return {
+        ...s,
+        id: newId,
+        clusterId: newClusterId,
+        x: s.x + OFFSET,
+        y: s.y + OFFSET,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    const containedItemIds = new Set([...containedCards.map(c => c.id), ...containedShapes.map(s => s.id)]);
+    const internalConnectors = connectors.filter(
+      conn => containedItemIds.has(conn.fromCardId) && containedItemIds.has(conn.toCardId)
+    );
+
+    const newConnectors: Connector[] = internalConnectors.map(conn => ({
+      ...conn,
+      id: uuidv4(),
+      fromCardId: idMap.get(conn.fromCardId) || conn.fromCardId,
+      toCardId: idMap.get(conn.toCardId) || conn.toCardId,
+    }));
+
+    const newCluster: Cluster = {
+      ...cluster,
+      id: newClusterId,
+      label: `${cluster.label} (Copy)`,
+      x: cluster.x + OFFSET,
+      y: cluster.y + OFFSET,
+    };
+
+    get().pushHistory();
+    if (get().soundEnabled) {
+      SoundEffects.paperPlace();
+    }
+
+    set(state => ({
+      clusters: [...state.clusters, newCluster],
+      cards: [...state.cards, ...newCards],
+      shapes: [...state.shapes, ...newShapes],
+      connectors: [...state.connectors, ...newConnectors],
+      selectedIds: [newClusterId],
+    }));
+
+    return newClusterId;
+  },
+
+  deleteClusterWithContents: (clusterId) => {
+    const { clusters, cards, shapes } = get();
+    const cluster = clusters.find(c => c.id === clusterId);
+    if (!cluster) return;
+
+    const containedCards = cards.filter(
+      c => c.clusterId === cluster.id || (
+        c.x >= cluster.x - 10 && c.x + c.width <= cluster.x + cluster.width + 10 &&
+        c.y >= cluster.y - 10 && c.y + c.height <= cluster.y + cluster.height + 10
+      )
+    );
+    const containedShapes = shapes.filter(
+      s => s.clusterId === cluster.id || (
+        s.x >= cluster.x - 10 && s.x + s.width <= cluster.x + cluster.width + 10 &&
+        s.y >= cluster.y - 10 && s.y + s.height <= cluster.y + cluster.height + 10
+      )
+    );
+
+    const cardIds = new Set(containedCards.map(c => c.id));
+    const shapeIds = new Set(containedShapes.map(s => s.id));
+    const removedItemIds = new Set([...cardIds, ...shapeIds]);
+
+    get().pushHistory();
+    if (get().soundEnabled) {
+      SoundEffects.deleteItem();
+    }
+
+    set(state => ({
+      clusters: state.clusters.filter(c => c.id !== clusterId),
+      cards: state.cards.filter(c => !cardIds.has(c.id)),
+      shapes: state.shapes.filter(s => !shapeIds.has(s.id)),
+      connectors: state.connectors.filter(
+        c => !removedItemIds.has(c.fromCardId) && !removedItemIds.has(c.toCardId)
+      ),
+      selectedIds: state.selectedIds.filter(id => id !== clusterId && !removedItemIds.has(id)),
+      editingClusterId: state.editingClusterId === clusterId ? null : state.editingClusterId,
+      confirmDeleteCluster: null,
+    }));
+  },
+
+  moveCluster: (id, x, y) => {
+    const { clusters } = get();
+    const cl = clusters.find(c => c.id === id);
+    if (!cl) return;
+    const dx = x - cl.x;
+    const dy = y - cl.y;
+    if (dx === 0 && dy === 0) return;
+
+    set(state => {
+      const currentCl = state.clusters.find(c => c.id === id);
+      if (!currentCl) return state;
+      return {
+        clusters: state.clusters.map(c => c.id === id ? { ...c, x, y } : c),
+        cards: state.cards.map(c => {
+          if (c.clusterId === id || (
+            c.x >= currentCl.x - 5 && c.x + c.width <= currentCl.x + currentCl.width + 5 &&
+            c.y >= currentCl.y - 5 && c.y + c.height <= currentCl.y + currentCl.height + 5
+          )) {
+            return { ...c, x: c.x + dx, y: c.y + dy, updatedAt: new Date().toISOString() };
+          }
+          return c;
+        }),
+        shapes: state.shapes.map(s => {
+          if (s.clusterId === id || (
+            s.x >= currentCl.x - 5 && s.x + s.width <= currentCl.x + currentCl.width + 5 &&
+            s.y >= currentCl.y - 5 && s.y + s.height <= currentCl.y + currentCl.height + 5
+          )) {
+            return { ...s, x: s.x + dx, y: s.y + dy, updatedAt: new Date().toISOString() };
+          }
+          return s;
+        }),
+      };
+    });
+  },
+
+  bringClusterToFront: (id) => {
+    const { clusters } = get();
+    const target = clusters.find(c => c.id === id);
+    if (!target) return;
+    set(state => ({
+      clusters: [...state.clusters.filter(c => c.id !== id), target],
+    }));
+  },
+
+  setEditingClusterId: (id) => set({ editingClusterId: id }),
+
+  openConfirmDeleteCluster: (clusterId: string) => {
+    const { clusters, cards } = get();
+    const cluster = clusters.find(c => c.id === clusterId);
+    if (!cluster) return;
+    const memberCount = cards.filter(c => c.clusterId === clusterId || (
+      c.x >= cluster.x && c.x + c.width <= cluster.x + cluster.width &&
+      c.y >= cluster.y && c.y + c.height <= cluster.y + cluster.height
+    )).length;
+
+    set({
+      confirmDeleteCluster: {
+        isOpen: true,
+        clusterId,
+        clusterLabel: cluster.label || 'Untitled Group',
+        cardCount: memberCount,
+      },
+    });
+  },
+
+  closeConfirmDeleteCluster: () => set({ confirmDeleteCluster: null }),
 
   // ── Selection & Multi-drag ───────────────────────────────────────
   setSelectedIds: (ids) => set({ selectedIds: ids }),
@@ -435,11 +936,25 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     }));
   },
 
-  clearSelection: () => set({ selectedIds: [], editingCardId: null, editingShapeId: null, editingConnectorId: null }),
+  clearSelection: () => set({
+    selectedIds: [],
+    editingCardId: null,
+    editingShapeId: null,
+    editingConnectorId: null,
+    editingClusterId: null,
+  }),
 
   deleteSelected: () => {
     const { selectedIds, cards, shapes, connectors, clusters } = get();
     if (selectedIds.length === 0) return;
+
+    // Check if exactly one cluster is selected or if cluster is in selection -> prompt confirmation
+    const clusterInSelection = clusters.find(c => selectedIds.includes(c.id));
+    if (clusterInSelection && selectedIds.length === 1) {
+      get().openConfirmDeleteCluster(clusterInSelection.id);
+      return;
+    }
+
     get().pushHistory();
     if (get().soundEnabled) {
       SoundEffects.deleteItem();
@@ -450,26 +965,59 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
     const clusterIds = new Set(selectedIds.filter(id => clusters.some(c => c.id === id)));
     const removedItemIds = new Set([...cardIds, ...shapeIds]);
 
-    set(state => ({
-      cards: state.cards.filter(c => !cardIds.has(c.id)),
-      shapes: state.shapes.filter(s => !shapeIds.has(s.id)),
-      connectors: state.connectors.filter(
-        c => !connectorIds.has(c.id) && !removedItemIds.has(c.fromCardId) && !removedItemIds.has(c.toCardId)
-      ),
-      clusters: state.clusters.filter(c => !clusterIds.has(c.id)),
-      selectedIds: [],
-      editingCardId: null,
-      editingShapeId: null,
-      editingConnectorId: null,
-    }));
+    set(state => {
+      const nextCards = state.cards.filter(c => !cardIds.has(c.id));
+      const nextShapes = state.shapes.filter(s => !shapeIds.has(s.id));
+      const remainingClusters = state.clusters.filter(c => !clusterIds.has(c.id));
+      const nextClusters = recalculateClusters(remainingClusters, nextCards, nextShapes);
+
+      return {
+        cards: nextCards,
+        shapes: nextShapes,
+        connectors: state.connectors.filter(
+          c => !connectorIds.has(c.id) && !removedItemIds.has(c.fromCardId) && !removedItemIds.has(c.toCardId)
+        ),
+        clusters: nextClusters,
+        selectedIds: [],
+        editingCardId: null,
+        editingShapeId: null,
+        editingConnectorId: null,
+        editingClusterId: null,
+      };
+    });
   },
 
   moveMultipleItems: (dx, dy, itemIds) => {
     if (itemIds.length === 0 || (dx === 0 && dy === 0)) return;
     const idSet = new Set(itemIds);
+
+    const { clusters, cards, shapes } = get();
+    const clustersInMove = clusters.filter(cl => idSet.has(cl.id));
+    const autoMovedCardIds = new Set<string>();
+    const autoMovedShapeIds = new Set<string>();
+
+    clustersInMove.forEach(cl => {
+      cards.forEach(c => {
+        if (c.clusterId === cl.id || (
+          c.x >= cl.x - 5 && c.x + c.width <= cl.x + cl.width + 5 &&
+          c.y >= cl.y - 5 && c.y + c.height <= cl.y + cl.height + 5
+        )) {
+          autoMovedCardIds.add(c.id);
+        }
+      });
+      shapes.forEach(s => {
+        if (s.clusterId === cl.id || (
+          s.x >= cl.x - 5 && s.x + s.width <= cl.x + cl.width + 5 &&
+          s.y >= cl.y - 5 && s.y + s.height <= cl.y + cl.height + 5
+        )) {
+          autoMovedShapeIds.add(s.id);
+        }
+      });
+    });
+
     set(state => ({
-      cards: state.cards.map(c => idSet.has(c.id) ? { ...c, x: c.x + dx, y: c.y + dy, updatedAt: new Date().toISOString() } : c),
-      shapes: state.shapes.map(s => idSet.has(s.id) ? { ...s, x: s.x + dx, y: s.y + dy, updatedAt: new Date().toISOString() } : s),
+      cards: state.cards.map(c => (idSet.has(c.id) || autoMovedCardIds.has(c.id)) ? { ...c, x: c.x + dx, y: c.y + dy, updatedAt: new Date().toISOString() } : c),
+      shapes: state.shapes.map(s => (idSet.has(s.id) || autoMovedShapeIds.has(s.id)) ? { ...s, x: s.x + dx, y: s.y + dy, updatedAt: new Date().toISOString() } : s),
       clusters: state.clusters.map(cl => idSet.has(cl.id) ? { ...cl, x: cl.x + dx, y: cl.y + dy } : cl),
     }));
   },
@@ -531,7 +1079,7 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
   resetView: () => set({ viewport: { x: 0, y: 0, scale: 1 } }),
 
   // ── Editing ─────────────────────────────────────────────────────
-  setEditingCardId: (id) => set({ editingCardId: id, viewingCardId: null, editingShapeId: null }),
+  setEditingCardId: (id) => set({ editingCardId: id, viewingCardId: null, editingShapeId: null, editingClusterId: null }),
   setViewingCardId: (id) => set({ viewingCardId: id }),
   setConnectingFromId: (id) => set({ connectingFromId: id }),
 
@@ -558,6 +1106,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       selectedIds: [],
       editingCardId: null,
       editingShapeId: null,
+      editingClusterId: null,
+      confirmDeleteCluster: null,
     });
   },
 
@@ -574,6 +1124,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       selectedIds: [],
       editingCardId: null,
       editingShapeId: null,
+      editingClusterId: null,
+      confirmDeleteCluster: null,
     });
   },
 
@@ -585,14 +1137,159 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
 
   importFromJSON: (state) => {
     get().pushHistory();
+    const rawClusters = state.clusters || [];
+    const rawCards = state.cards || [];
+    const rawShapes = state.shapes || [];
+
+    // Automatically associate cards with clusters by geometry if clusterId is missing
+    const cardsWithClusterId = rawCards.map(card => {
+      if (card.clusterId) return card;
+      const containing = rawClusters.find(
+        cl => card.x >= cl.x - 20 && card.x + card.width <= cl.x + cl.width + 20 &&
+              card.y >= cl.y - 20 && card.y + card.height <= cl.y + cl.height + 20
+      );
+      return containing ? { ...card, clusterId: containing.id } : card;
+    });
+
+    const shapesWithClusterId = rawShapes.map(shape => {
+      if (shape.clusterId) return shape;
+      const containing = rawClusters.find(
+        cl => shape.x >= cl.x - 20 && shape.x + shape.width <= cl.x + cl.width + 20 &&
+              shape.y >= cl.y - 20 && shape.y + shape.height <= cl.y + cl.height + 20
+      );
+      return containing ? { ...shape, clusterId: containing.id } : shape;
+    });
+
+    const adjustedClusters = recalculateClusters(rawClusters, cardsWithClusterId, shapesWithClusterId);
+
     set({
-      cards: state.cards || [],
-      shapes: state.shapes || [],
+      cards: cardsWithClusterId,
+      shapes: shapesWithClusterId,
       connectors: state.connectors || [],
-      clusters: state.clusters || [],
+      clusters: adjustedClusters,
       selectedIds: [],
       editingCardId: null,
       editingShapeId: null,
+      editingClusterId: null,
+      confirmDeleteCluster: null,
+    });
+  },
+
+  loadTemplate: (templateState, mode = 'append') => {
+    const { cards: existingCards, shapes: existingShapes, connectors: existingConnectors, clusters: existingClusters } = get();
+
+    if (mode === 'replace' || (existingCards.length === 0 && existingShapes.length === 0 && existingClusters.length === 0)) {
+      get().importFromJSON(templateState);
+      return;
+    }
+
+    get().pushHistory();
+
+    // 1. Calculate offset so new template appears cleanly to the right of existing content
+    const existingBounds = [
+      ...existingCards.map(c => ({ x: c.x, y: c.y, w: c.width, h: c.height })),
+      ...existingShapes.map(s => ({ x: s.x, y: s.y, w: s.width, h: s.height })),
+      ...existingClusters.map(cl => ({ x: cl.x, y: cl.y, w: cl.width, h: cl.height })),
+    ];
+
+    const currentMaxX = Math.max(...existingBounds.map(b => b.x + b.w));
+    const currentMinY = Math.min(...existingBounds.map(b => b.y));
+
+    // Template bounds
+    const templateItems = [
+      ...(templateState.cards || []).map(c => ({ x: c.x, y: c.y, w: c.width, h: c.height })),
+      ...(templateState.shapes || []).map(s => ({ x: s.x, y: s.y, w: s.width, h: s.height })),
+      ...(templateState.clusters || []).map(cl => ({ x: cl.x, y: cl.y, w: cl.width, h: cl.height })),
+    ];
+
+    const templateMinX = templateItems.length > 0 ? Math.min(...templateItems.map(b => b.x)) : 0;
+    const templateMinY = templateItems.length > 0 ? Math.min(...templateItems.map(b => b.y)) : 0;
+
+    const SPACING = 140;
+    const offsetX = currentMaxX + SPACING - templateMinX;
+    const offsetY = currentMinY - templateMinY;
+
+    // 2. Generate new UUIDs for all template items and map them
+    const idMap = new Map<string, string>();
+
+    const rawClusters = templateState.clusters || [];
+    const newClusters: Cluster[] = rawClusters.map(cl => {
+      const newId = uuidv4();
+      idMap.set(cl.id, newId);
+      return {
+        ...cl,
+        id: newId,
+        x: cl.x + offsetX,
+        y: cl.y + offsetY,
+      };
+    });
+
+    const rawCards = templateState.cards || [];
+    const newCards: Card[] = rawCards.map(c => {
+      const newId = uuidv4();
+      idMap.set(c.id, newId);
+      const newClusterId = c.clusterId ? idMap.get(c.clusterId) || c.clusterId : undefined;
+      return {
+        ...c,
+        id: newId,
+        x: c.x + offsetX,
+        y: c.y + offsetY,
+        clusterId: newClusterId,
+        zIndex: getMaxZIndex(existingCards, existingShapes) + (c.zIndex || 1),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    const rawShapes = templateState.shapes || [];
+    const newShapes: Shape[] = rawShapes.map(s => {
+      const newId = uuidv4();
+      idMap.set(s.id, newId);
+      const newClusterId = s.clusterId ? idMap.get(s.clusterId) || s.clusterId : undefined;
+      return {
+        ...s,
+        id: newId,
+        x: s.x + offsetX,
+        y: s.y + offsetY,
+        clusterId: newClusterId,
+        zIndex: getMaxZIndex(existingCards, existingShapes) + (s.zIndex || 1),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    const rawConnectors = templateState.connectors || [];
+    const newConnectors: Connector[] = rawConnectors.map(conn => {
+      const newId = uuidv4();
+      return {
+        ...conn,
+        id: newId,
+        fromCardId: idMap.get(conn.fromCardId) || conn.fromCardId,
+        toCardId: idMap.get(conn.toCardId) || conn.toCardId,
+      };
+    });
+
+    const allCombinedCards = [...existingCards, ...newCards];
+    const allCombinedShapes = [...existingShapes, ...newShapes];
+    const allCombinedClusters = [...existingClusters, ...newClusters];
+    const allCombinedConnectors = [...existingConnectors, ...newConnectors];
+
+    const adjustedClusters = recalculateClusters(allCombinedClusters, allCombinedCards, allCombinedShapes);
+
+    if (get().soundEnabled) {
+      SoundEffects.paperPlace();
+    }
+
+    set({
+      cards: allCombinedCards,
+      shapes: allCombinedShapes,
+      clusters: adjustedClusters,
+      connectors: allCombinedConnectors,
+      selectedIds: newClusters.length > 0 ? newClusters.map(cl => cl.id) : newCards.map(c => c.id),
+      editingCardId: null,
+      editingShapeId: null,
+      editingClusterId: null,
+      confirmDeleteCluster: null,
     });
   },
 
@@ -606,7 +1303,8 @@ export const useBoardStore = create<BoardStore>((set, get) => ({
       selectedIds: [],
       editingCardId: null,
       editingShapeId: null,
+      editingClusterId: null,
+      confirmDeleteCluster: null,
     });
   },
 }));
-

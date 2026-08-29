@@ -25,17 +25,20 @@ interface TemplateModalProps {
 }
 
 export const TemplateModal: React.FC<TemplateModalProps> = ({ isOpen, onClose }) => {
-  const { importFromJSON, zoomToFit } = useBoardStore();
+  const { cards, shapes, clusters, loadTemplate, zoomToFit } = useBoardStore();
   const [selectedTemplate, setSelectedTemplate] = useState<BoardTemplate>(BOARD_TEMPLATES[0]);
+  const [keepExisting, setKeepExisting] = useState(true);
 
   if (!isOpen) return null;
 
-  const handleLoad = () => {
+  const hasExistingContent = cards.length > 0 || shapes.length > 0 || clusters.length > 0;
+
+  const handleLoad = (mode: 'append' | 'replace' = 'append') => {
     if (!selectedTemplate) return;
-    importFromJSON(selectedTemplate.state);
+    loadTemplate(selectedTemplate.state, mode);
     setTimeout(() => {
       zoomToFit();
-    }, 100);
+    }, 120);
     onClose();
   };
 
@@ -74,7 +77,7 @@ export const TemplateModal: React.FC<TemplateModalProps> = ({ isOpen, onClose })
                   key={tmpl.id}
                   className={`template-card ${isSelected ? 'active' : ''}`}
                   onClick={() => setSelectedTemplate(tmpl)}
-                  onDoubleClick={handleLoad}
+                  onDoubleClick={() => handleLoad(hasExistingContent && keepExisting ? 'append' : 'replace')}
                 >
                   <div className="template-card-top">
                     <div className="template-card-icon-title">
@@ -102,11 +105,50 @@ export const TemplateModal: React.FC<TemplateModalProps> = ({ isOpen, onClose })
         </div>
 
         <div className="template-modal-actions">
-          <button className="template-btn-cancel" onClick={onClose}>Cancel</button>
-          <button className="template-btn-load" onClick={handleLoad}>
-            <span>Load Template</span>
-            <span>↵</span>
-          </button>
+          <div className="template-modal-options">
+            {hasExistingContent && (
+              <label className="template-keep-option">
+                <input
+                  type="checkbox"
+                  checked={keepExisting}
+                  onChange={(e) => setKeepExisting(e.target.checked)}
+                />
+                <span>Keep existing board content (Add side-by-side)</span>
+              </label>
+            )}
+          </div>
+
+          <div className="template-modal-buttons">
+            <button className="template-btn-cancel" onClick={onClose}>Cancel</button>
+
+            {hasExistingContent && keepExisting ? (
+              <>
+                <button
+                  className="template-btn-replace"
+                  onClick={() => handleLoad('replace')}
+                  title="Clear board and load this template only"
+                >
+                  Replace Canvas
+                </button>
+                <button
+                  className="template-btn-load"
+                  onClick={() => handleLoad('append')}
+                  title="Add template alongside existing content"
+                >
+                  <span>+ Add to Board</span>
+                  <span>↵</span>
+                </button>
+              </>
+            ) : (
+              <button
+                className="template-btn-load"
+                onClick={() => handleLoad('replace')}
+              >
+                <span>Load Template</span>
+                <span>↵</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

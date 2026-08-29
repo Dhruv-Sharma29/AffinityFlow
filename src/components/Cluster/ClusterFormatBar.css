@@ -1,0 +1,88 @@
+.cluster-format-bar {
+  position: fixed;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  pointer-events: auto;
+  user-select: none;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.cluster-format-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #55483d;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cluster-format-btn:hover {
+  background: #f3ece0;
+  color: #241d18;
+}
+
+.cluster-format-btn.primary {
+  background: #2d3748;
+  color: #f7fafc;
+  padding: 5px 10px;
+  gap: 5px;
+}
+
+.cluster-format-btn.primary:hover {
+  background: #1a202c;
+}
+
+.cluster-format-btn.danger {
+  color: #c0392b;
+}
+
+.cluster-format-btn.danger:hover {
+  background: #fde8e8;
+}
+
+.cluster-format-divider {
+  width: 1px;
+  height: 18px;
+  background: #e2d9cc;
+  margin: 0 2px;
+}
+
+.cluster-format-colors {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cluster-color-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+  padding: 0;
+}
+
+.cluster-color-btn:hover {
+  transform: scale(1.2);
+}
+
+.cluster-color-btn.active {
+  border-color: #c0392b;
+  transform: scale(1.25);
+}

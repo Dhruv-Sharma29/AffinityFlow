@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useBoardStore } from '../../store/boardStore';
-import { CARD_COLORS, SHAPE_COLORS } from '../../types/board';
+import { CARD_COLORS, SHAPE_COLORS, CLUSTER_COLORS } from '../../types/board';
 import { IconRadarMap, IconHideMap } from '../Icons/Icons';
 import './Minimap.css';
 
@@ -86,8 +86,11 @@ export const Minimap: React.FC = () => {
       const my = toMapY(cl.y);
       const mw = cl.width * scale;
       const mh = cl.height * scale;
+      const theme = CLUSTER_COLORS[cl.color || 'slate'] || CLUSTER_COLORS.slate;
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.fillStyle = theme.bg;
+      ctx.fillRect(mx, my, mw, mh);
+      ctx.strokeStyle = theme.border;
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 2]);
       ctx.strokeRect(mx, my, mw, mh);
