@@ -1,5 +1,5 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
-import { Stage, Layer, Rect, Circle } from 'react-konva';
+import { Stage, Layer, Rect, Circle, Group, Text } from 'react-konva';
 import type Konva from 'konva';
 import { useBoardStore } from '../../store/boardStore';
 import { setGlobalStageRef } from '../../utils/stageRef';
@@ -29,6 +29,10 @@ export const InfiniteCanvas: React.FC = () => {
   const [drawingShapeStart, setDrawingShapeStart] = useState<{ x: number; y: number } | null>(null);
   const [drawingShapeCurrent, setDrawingShapeCurrent] = useState<{ x: number; y: number } | null>(null);
 
+  // Drag-to-draw state for clusters
+  const [drawingClusterStart, setDrawingClusterStart] = useState<{ x: number; y: number } | null>(null);
+  const [drawingClusterCurrent, setDrawingClusterCurrent] = useState<{ x: number; y: number } | null>(null);
+
   // Marquee selection state
   const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
   const [marqueeCurrent, setMarqueeCurrent] = useState<{ x: number; y: number } | null>(null);
@@ -40,6 +44,7 @@ export const InfiniteCanvas: React.FC = () => {
     selectedIds, setSelectedIds, clearSelection,
     addCard, moveCard, bringToFront,
     addShape, moveShape, resizeShape, bringShapeToFront,
+    addCluster, moveCluster, resizeCluster, bringClusterToFront, setEditingClusterId,
     editingCardId, setEditingCardId,
     editingShapeId, setEditingShapeId,
     connectingFromId, setConnectingFromId,
@@ -127,9 +132,8 @@ export const InfiniteCanvas: React.FC = () => {
       }
 
       if (activeTool === 'cluster') {
-        const { addCluster } = useBoardStore.getState();
-        addCluster(worldX - 150, worldY - 20);
-        setActiveTool('select');
+        setDrawingClusterStart({ x: worldX, y: worldY });
+        setDrawingClusterCurrent({ x: worldX, y: worldY });
         return;
       }
 
@@ -194,6 +198,18 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
+      // If drawing a cluster, update the current drag point
+      if (drawingClusterStart) {
+        const stage = stageRef.current;
+        if (!stage) return;
+        const pointer = stage.getPointerPosition();
+        if (!pointer) return;
+        const worldX = (pointer.x - viewport.x) / viewport.scale;
+        const worldY = (pointer.y - viewport.y) / viewport.scale;
+        setDrawingClusterCurrent({ x: worldX, y: worldY });
+        return;
+      }
+
       // If drawing a shape, update the current drag point
       if (drawingShapeStart) {
         const stage = stageRef.current;
@@ -217,7 +233,7 @@ export const InfiniteCanvas: React.FC = () => {
         setMarqueeCurrent({ x: worldX, y: worldY });
       }
     },
-    [viewport, setViewport, drawingShapeStart, marqueeStart]
+    [viewport, setViewport, drawingClusterStart, drawingShapeStart, marqueeStart]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -265,6 +281,38 @@ export const InfiniteCanvas: React.FC = () => {
       setMarqueeCurrent(null);
     }
 
+    // Finish drawing cluster if active
+    if (drawingClusterStart && drawingClusterCurrent) {
+      const startX = drawingClusterStart.x;
+      const startY = drawingClusterStart.y;
+      const currentX = drawingClusterCurrent.x;
+      const currentY = drawingClusterCurrent.y;
+
+      const dragWidth = Math.abs(currentX - startX);
+      const dragHeight = Math.abs(currentY - startY);
+
+      let finalId = '';
+      if (dragWidth < 15 && dragHeight < 15) {
+        // Single click: place default sized cluster centered at click
+        const defaultW = 320;
+        const defaultH = 220;
+        finalId = addCluster(startX - defaultW / 2, startY - defaultH / 2, defaultW, defaultH);
+      } else {
+        const x = Math.min(startX, currentX);
+        const y = Math.min(startY, currentY);
+        const width = Math.max(80, dragWidth);
+        const height = Math.max(60, dragHeight);
+        finalId = addCluster(x, y, width, height);
+      }
+
+      if (finalId) {
+        setSelectedIds([finalId]);
+      }
+      setDrawingClusterStart(null);
+      setDrawingClusterCurrent(null);
+      setActiveTool('select');
+    }
+
     // Finish drawing shape if active
     if (drawingShapeStart && drawingShapeCurrent) {
       const startX = drawingShapeStart.x;
@@ -299,7 +347,7 @@ export const InfiniteCanvas: React.FC = () => {
       setDrawingShapeCurrent(null);
       setActiveTool('select');
     }
-  }, [marqueeStart, marqueeCurrent, cards, shapes, clusters, drawingShapeStart, drawingShapeCurrent, activeShapeType, addShape, setSelectedIds, setActiveTool]);
+  }, [marqueeStart, marqueeCurrent, cards, shapes, clusters, drawingClusterStart, drawingClusterCurrent, drawingShapeStart, drawingShapeCurrent, activeShapeType, addCluster, addShape, setSelectedIds, setActiveTool]);
 
   // ─── Card interaction handlers ───────────────────────────────────
   const handleCardSelect = useCallback(
@@ -400,6 +448,50 @@ export const InfiniteCanvas: React.FC = () => {
     [setEditingShapeId]
   );
 
+  // ─── Cluster interaction handlers ────────────────────────────────
+  const handleClusterSelect = useCallback(
+    (id: string, e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (e.evt.shiftKey) {
+        const store = useBoardStore.getState();
+        store.toggleSelection(id);
+      } else {
+        setSelectedIds([id]);
+      }
+      bringClusterToFront(id);
+    },
+    [setSelectedIds, bringClusterToFront]
+  );
+
+  const handleClusterDragStart = useCallback(
+    (id: string) => {
+      const store = useBoardStore.getState();
+      store.pushHistory();
+      bringClusterToFront(id);
+    },
+    [bringClusterToFront]
+  );
+
+  const handleClusterDragEnd = useCallback(
+    (id: string, x: number, y: number) => {
+      moveCluster(id, x, y);
+    },
+    [moveCluster]
+  );
+
+  const handleClusterTransformEnd = useCallback(
+    (id: string, width: number, height: number, x: number, y: number) => {
+      resizeCluster(id, width, height, x, y);
+    },
+    [resizeCluster]
+  );
+
+  const handleClusterDoubleClick = useCallback(
+    (id: string) => {
+      setEditingClusterId(id);
+    },
+    [setEditingClusterId]
+  );
+
   // ─── Compute dot grid ────────────────────────────────────────────
   const renderDotGrid = useCallback(() => {
     const { x: vx, y: vy, scale } = viewport;
@@ -461,6 +553,16 @@ export const InfiniteCanvas: React.FC = () => {
     ghostBox = { x, y, width, height };
   }
 
+  // Drag-to-draw cluster ghost calculation
+  let ghostClusterBox: { x: number; y: number; width: number; height: number } | null = null;
+  if (drawingClusterStart && drawingClusterCurrent) {
+    const x = Math.min(drawingClusterStart.x, drawingClusterCurrent.x);
+    const y = Math.min(drawingClusterStart.y, drawingClusterCurrent.y);
+    const width = Math.max(1, Math.abs(drawingClusterCurrent.x - drawingClusterStart.x));
+    const height = Math.max(1, Math.abs(drawingClusterCurrent.y - drawingClusterStart.y));
+    ghostClusterBox = { x, y, width, height };
+  }
+
   // Marquee box calculation
   let marqueeBox: { x: number; y: number; width: number; height: number } | null = null;
   if (marqueeStart && marqueeCurrent) {
@@ -509,9 +611,49 @@ export const InfiniteCanvas: React.FC = () => {
             key={cluster.id}
             cluster={cluster}
             isSelected={selectedIds.includes(cluster.id)}
-            onSelect={(id) => setSelectedIds([id])}
+            onSelect={handleClusterSelect}
+            onDragStart={handleClusterDragStart}
+            onDragEnd={handleClusterDragEnd}
+            onTransformEnd={handleClusterTransformEnd}
+            onDoubleClick={handleClusterDoubleClick}
           />
         ))}
+
+        {/* Live Drag-to-Draw Cluster Ghost Preview */}
+        {ghostClusterBox && (
+          <Group x={ghostClusterBox.x} y={ghostClusterBox.y}>
+            <Rect
+              width={ghostClusterBox.width}
+              height={ghostClusterBox.height}
+              stroke="#c0392b"
+              strokeWidth={1.8}
+              dash={[6, 4]}
+              fill="rgba(192, 57, 43, 0.07)"
+              cornerRadius={8}
+              listening={false}
+            />
+            <Group x={12} y={-14}>
+              <Rect
+                width={84}
+                height={26}
+                fill="#241d18"
+                cornerRadius={4}
+                listening={false}
+              />
+              <Text
+                x={12}
+                y={7}
+                text="NEW GROUP"
+                fontFamily="'Inter', sans-serif"
+                fontSize={10}
+                fontStyle="bold"
+                letterSpacing={1.2}
+                fill="#f4ecd8"
+                listening={false}
+              />
+            </Group>
+          </Group>
+        )}
       </Layer>
 
       {/* Connectors layer */}

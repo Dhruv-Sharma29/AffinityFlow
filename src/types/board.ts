@@ -82,6 +82,19 @@ export interface Connector {
 }
 
 // ─── Cluster ────────────────────────────────────────────────────────
+export type ClusterColor = 'slate' | 'cream' | 'yellow' | 'pink' | 'green' | 'blue' | 'purple' | 'orange';
+
+export const CLUSTER_COLORS: Record<ClusterColor, { bg: string; border: string; badgeBg: string; text: string }> = {
+  slate:  { bg: 'rgba(74, 85, 104, 0.07)', border: 'rgba(74, 85, 104, 0.4)', badgeBg: '#2d3748', text: '#edf2f7' },
+  cream:  { bg: 'rgba(244, 236, 216, 0.12)', border: 'rgba(160, 111, 66, 0.35)', badgeBg: '#241d18', text: '#f4ecd8' },
+  yellow: { bg: 'rgba(255, 249, 196, 0.18)', border: 'rgba(212, 175, 55, 0.45)', badgeBg: '#b8860b', text: '#fffde7' },
+  pink:   { bg: 'rgba(252, 228, 236, 0.18)', border: 'rgba(194, 24, 91, 0.4)', badgeBg: '#c2185b', text: '#fce4ec' },
+  green:  { bg: 'rgba(232, 245, 233, 0.18)', border: 'rgba(46, 125, 50, 0.4)', badgeBg: '#2e7d32', text: '#e8f5e9' },
+  blue:   { bg: 'rgba(227, 242, 253, 0.18)', border: 'rgba(21, 101, 192, 0.4)', badgeBg: '#1565c0', text: '#e3f2fd' },
+  purple: { bg: 'rgba(243, 229, 245, 0.18)', border: 'rgba(123, 31, 162, 0.4)', badgeBg: '#7b1fa2', text: '#f3e5f5' },
+  orange: { bg: 'rgba(255, 243, 224, 0.18)', border: 'rgba(230, 81, 0, 0.4)', badgeBg: '#e65100', text: '#fff3e0' },
+};
+
 export interface Cluster {
   id: string;
   label: string;
@@ -89,6 +102,7 @@ export interface Cluster {
   y: number;
   width: number;
   height: number;
+  color?: ClusterColor;
 }
 
 // ─── Tool ───────────────────────────────────────────────────────────
