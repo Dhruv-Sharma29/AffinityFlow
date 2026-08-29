@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useBoardStore } from '../../store/boardStore';
-import { CARD_COLORS, SHAPE_COLORS } from '../../types/board';
-import type { CardColor, ShapeColor, ShapeType } from '../../types/board';
+import { CARD_COLORS, SHAPE_COLORS, CLUSTER_COLORS } from '../../types/board';
+import type { CardColor, ShapeColor, ShapeType, ClusterColor } from '../../types/board';
 import {
   IconEdit, IconTrash, IconCopy, IconLink, IconUnlink,
-  IconPalette, IconBringToFront, IconShape,
+  IconPalette, IconBringToFront, IconShape, IconGroup,
 } from '../Icons/Icons';
 import { getAllShapeDefinitions } from '../Shape/shapeRegistry';
 import './ContextMenu.css';
@@ -30,11 +30,13 @@ export const ContextMenu: React.FC = () => {
   const [showShapeTypePicker, setShowShapeTypePicker] = useState(false);
 
   const {
-    cards, shapes, connectors,
-    setSelectedIds,
-    setEditingCardId, setEditingShapeId,
-    deleteCard, deleteShape, deleteConnector, unlinkCard,
-    updateCard, updateShape, bringToFront, bringShapeToFront,
+    cards, shapes, connectors, clusters,
+    selectedIds, setSelectedIds,
+    setEditingCardId, setEditingShapeId, setEditingClusterId,
+    deleteCard, deleteShape, deleteConnector, deleteCluster, deleteClusterWithContents,
+    unlinkCard, ungroup, groupSelected, duplicateCluster,
+    updateCard, updateShape, updateCluster,
+    bringToFront, bringShapeToFront, bringClusterToFront,
     addCard, addShape,
     setActiveTool, setConnectingFromId,
   } = useBoardStore();
@@ -54,7 +56,12 @@ export const ContextMenu: React.FC = () => {
         e.preventDefault();
         setPosition({ x: detail.clientX, y: detail.clientY });
         setTargetId(detail.targetId);
-        setSelectedIds([detail.targetId]);
+
+        const currentSelected = useBoardStore.getState().selectedIds;
+        if (!currentSelected.includes(detail.targetId)) {
+          setSelectedIds([detail.targetId]);
+        }
+
         setIsOpen(true);
         setShowColorPicker(false);
         setShowShapeTypePicker(false);
@@ -92,11 +99,66 @@ export const ContextMenu: React.FC = () => {
   const targetCard = cards.find(c => c.id === targetId);
   const targetShape = shapes.find(s => s.id === targetId);
   const targetConnector = connectors.find(c => c.id === targetId);
+  const targetCluster = clusters.find(c => c.id === targetId);
 
   // Build menu items based on target type
   const menuItems: ContextMenuItem[] = [];
 
-  if (targetCard) {
+  // Multi-selection grouping action
+  if (selectedIds.length > 1) {
+    menuItems.push({
+      label: `Group ${selectedIds.length} Items (⌘G)`,
+      icon: <IconGroup size={15} />,
+      action: () => { groupSelected(); close(); },
+      dividerAfter: true,
+    });
+  }
+
+  if (targetCluster) {
+    menuItems.push(
+      {
+        label: 'Edit Group Label',
+        icon: <IconEdit size={15} />,
+        action: () => { setEditingClusterId(targetId); close(); },
+      },
+      {
+        label: 'Change Group Color',
+        icon: <IconPalette size={15} />,
+        action: () => {
+          setShowColorPicker(!showColorPicker);
+          setShowShapeTypePicker(false);
+        },
+      },
+      {
+        label: 'Duplicate Group & Contents',
+        icon: <IconCopy size={15} />,
+        action: () => { duplicateCluster(targetId); close(); },
+        dividerAfter: true,
+      },
+      {
+        label: 'Ungroup (Keep Items)',
+        icon: <IconUnlink size={15} />,
+        action: () => { ungroup(targetId); close(); },
+      },
+      {
+        label: 'Bring to Front',
+        icon: <IconBringToFront size={15} />,
+        action: () => { bringClusterToFront(targetId); close(); },
+        dividerAfter: true,
+      },
+      {
+        label: 'Delete Group Container',
+        icon: <IconTrash size={15} />,
+        action: () => { deleteCluster(targetId); close(); },
+      },
+      {
+        label: 'Delete Group & All Contents',
+        icon: <IconTrash size={15} />,
+        action: () => { deleteClusterWithContents(targetId); close(); },
+        danger: true,
+      },
+    );
+  } else if (targetCard) {
     menuItems.push(
       {
         label: 'Edit',
@@ -275,7 +337,7 @@ export const ContextMenu: React.FC = () => {
   }
 
   // Clamp position to viewport
-  const menuW = 200;
+  const menuW = 220;
   const menuH = menuItems.length * 36 + 16;
   const x = Math.min(position.x, window.innerWidth - menuW - 8);
   const y = Math.min(position.y, window.innerHeight - menuH - 8);
@@ -290,6 +352,13 @@ export const ContextMenu: React.FC = () => {
   const handleShapeColorChange = (color: ShapeColor) => {
     if (targetShape) {
       updateShape(targetId, { color });
+    }
+    close();
+  };
+
+  const handleClusterColorChange = (color: ClusterColor) => {
+    if (targetCluster) {
+      updateCluster(targetId, { color });
     }
     close();
   };
@@ -337,6 +406,24 @@ export const ContextMenu: React.FC = () => {
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Color picker submenu for Clusters */}
+      {showColorPicker && targetCluster && (
+        <div className="context-menu-colors">
+          {(Object.keys(CLUSTER_COLORS) as ClusterColor[]).map((c) => (
+            <button
+              key={c}
+              className={`context-menu-color ${targetCluster.color === c ? 'active' : ''}`}
+              style={{
+                backgroundColor: CLUSTER_COLORS[c].badgeBg,
+                borderColor: CLUSTER_COLORS[c].border,
+              }}
+              onClick={() => handleClusterColorChange(c)}
+              title={c}
+            />
+          ))}
         </div>
       )}
 

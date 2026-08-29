@@ -1,73 +1,184 @@
-import { Group, Rect, Text } from 'react-konva';
+import React, { useRef, useEffect, useCallback } from 'react';
+import { Group, Rect, Text, Transformer } from 'react-konva';
+import type Konva from 'konva';
 import type { Cluster } from '../../types/board';
+import { CLUSTER_COLORS } from '../../types/board';
 import { useBoardStore } from '../../store/boardStore';
 
 interface ClusterLabelProps {
   cluster: Cluster;
   isSelected: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, e: Konva.KonvaEventObject<MouseEvent>) => void;
+  onDragStart: (id: string) => void;
+  onDragEnd: (id: string, x: number, y: number) => void;
+  onTransformEnd: (id: string, width: number, height: number, x: number, y: number) => void;
+  onDoubleClick: (id: string) => void;
 }
 
 export const ClusterLabel: React.FC<ClusterLabelProps> = ({
   cluster,
   isSelected,
   onSelect,
+  onDragStart,
+  onDragEnd,
+  onTransformEnd,
+  onDoubleClick,
 }) => {
-  const { updateCluster, pushHistory } = useBoardStore();
+  const groupRef = useRef<Konva.Group>(null);
+  const trRef = useRef<Konva.Transformer>(null);
+  const lastDragPos = useRef({ x: cluster.x, y: cluster.y });
 
-  const handleDragEnd = (e: any) => {
-    updateCluster(cluster.id, { x: e.target.x(), y: e.target.y() });
-  };
+  const theme = CLUSTER_COLORS[cluster.color || 'slate'] || CLUSTER_COLORS.slate;
 
-  const handleDblClick = () => {
-    const newLabel = prompt('Cluster label:', cluster.label);
-    if (newLabel !== null) {
-      updateCluster(cluster.id, { label: newLabel });
+  // Attach Transformer when selected
+  useEffect(() => {
+    if (isSelected && trRef.current && groupRef.current) {
+      trRef.current.nodes([groupRef.current]);
+      trRef.current.getLayer()?.batchDraw();
     }
-  };
+  }, [isSelected, cluster.width, cluster.height]);
+
+  const handleDragStart = useCallback(() => {
+    lastDragPos.current = { x: cluster.x, y: cluster.y };
+    onDragStart(cluster.id);
+  }, [cluster.id, cluster.x, cluster.y, onDragStart]);
+
+  const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    const node = e.target;
+    const dx = node.x() - lastDragPos.current.x;
+    const dy = node.y() - lastDragPos.current.y;
+    lastDragPos.current = { x: node.x(), y: node.y() };
+
+    const store = useBoardStore.getState();
+    store.moveMultipleItems(dx, dy, [cluster.id]);
+  }, [cluster.id]);
+
+  const handleDragEnd = useCallback(
+    (e: Konva.KonvaEventObject<DragEvent>) => {
+      const node = e.target;
+      onDragEnd(cluster.id, node.x(), node.y());
+    },
+    [cluster.id, onDragEnd]
+  );
+
+  const handleTransformEnd = useCallback(() => {
+    const node = groupRef.current;
+    if (!node) return;
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+    node.scaleX(1);
+    node.scaleY(1);
+
+    const newWidth = Math.max(80, Math.round(cluster.width * scaleX));
+    const newHeight = Math.max(60, Math.round(cluster.height * scaleY));
+    const newX = Math.round(node.x());
+    const newY = Math.round(node.y());
+
+    onTransformEnd(cluster.id, newWidth, newHeight, newX, newY);
+  }, [cluster.id, cluster.width, cluster.height, onTransformEnd]);
+
+  // Compute label badge width dynamically
+  const badgeText = (cluster.label || 'GROUP').toUpperCase();
+  const badgeWidth = Math.max(badgeText.length * 8.5 + 28, 88);
 
   return (
-    <Group
-      x={cluster.x}
-      y={cluster.y}
-      draggable
-      onClick={() => onSelect(cluster.id)}
-      onDblClick={handleDblClick}
-      onDragStart={() => pushHistory()}
-      onDragEnd={handleDragEnd}
-    >
-      {/* Cluster background area (dashed outline) */}
-      <Rect
-        width={cluster.width}
-        height={cluster.height}
-        fill="rgba(244, 236, 216, 0.12)"
-        stroke={isSelected ? '#c0392b' : 'rgba(160, 111, 66, 0.3)'}
-        strokeWidth={isSelected ? 2 : 1.5}
-        dash={[8, 6]}
-        cornerRadius={8}
-      />
+    <>
+      <Group
+        ref={groupRef}
+        x={cluster.x}
+        y={cluster.y}
+        draggable
+        onClick={(e) => onSelect(cluster.id, e)}
+        onTap={(e) => onSelect(cluster.id, e as unknown as Konva.KonvaEventObject<MouseEvent>)}
+        onDblClick={() => onDoubleClick(cluster.id)}
+        onDblTap={() => onDoubleClick(cluster.id)}
+        onContextMenu={(e) => {
+          e.evt.preventDefault();
+          window.dispatchEvent(
+            new CustomEvent('canvas-context-menu', {
+              detail: {
+                clientX: e.evt.clientX,
+                clientY: e.evt.clientY,
+                targetId: cluster.id,
+              },
+            })
+          );
+        }}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Cluster background area (dashed outline & subtle fill) */}
+        <Rect
+          width={cluster.width}
+          height={cluster.height}
+          fill={theme.bg}
+          stroke={isSelected ? '#c0392b' : theme.border}
+          strokeWidth={isSelected ? 2.5 : 1.8}
+          dash={isSelected ? [6, 4] : [8, 6]}
+          cornerRadius={10}
+          shadowColor="rgba(0, 0, 0, 0.08)"
+          shadowBlur={isSelected ? 12 : 6}
+          shadowOffset={{ x: 0, y: 2 }}
+          shadowOpacity={0.25}
+        />
 
-      {/* Label background */}
-      <Rect
-        x={12}
-        y={-14}
-        width={Math.max(cluster.label.length * 9 + 24, 80)}
-        height={28}
-        fill="#241d18"
-        cornerRadius={3}
-      />
+        {/* Group Header Badge Pill */}
+        <Group x={12} y={-14}>
+          <Rect
+            width={badgeWidth}
+            height={28}
+            fill={theme.badgeBg}
+            stroke={isSelected ? '#c0392b' : theme.border}
+            strokeWidth={1}
+            cornerRadius={6}
+            shadowColor="rgba(0, 0, 0, 0.25)"
+            shadowBlur={4}
+            shadowOffset={{ x: 0, y: 2 }}
+            shadowOpacity={0.2}
+          />
+          <Text
+            x={12}
+            y={8}
+            text={badgeText}
+            fontFamily="'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            fontSize={11}
+            fontStyle="bold"
+            letterSpacing={1.2}
+            fill={theme.text}
+            listening={false}
+          />
+        </Group>
+      </Group>
 
-      {/* Label text */}
-      <Text
-        x={24}
-        y={-8}
-        text={cluster.label.toUpperCase()}
-        fontFamily="'Inter', -apple-system, sans-serif"
-        fontSize={11}
-        fontStyle="bold"
-        letterSpacing={1.2}
-        fill="#f4ecd8"
-      />
-    </Group>
+      {/* Transformer handle overlay when selected */}
+      {isSelected && (
+        <Transformer
+          ref={trRef}
+          rotateEnabled={false}
+          flipEnabled={false}
+          enabledAnchors={[
+            'top-left', 'top-center', 'top-right',
+            'middle-right', 'middle-left',
+            'bottom-left', 'bottom-center', 'bottom-right',
+          ]}
+          boundBoxFunc={(oldBox, newBox) => {
+            if (newBox.width < 80 || newBox.height < 60) {
+              return oldBox;
+            }
+            return newBox;
+          }}
+          anchorSize={8}
+          anchorCornerRadius={4}
+          anchorStroke="#c0392b"
+          anchorFill="#ffffff"
+          anchorStrokeWidth={1.5}
+          borderStroke="#c0392b"
+          borderStrokeWidth={1.5}
+          borderDash={[4, 3]}
+          onTransformEnd={handleTransformEnd}
+        />
+      )}
+    </>
   );
 };
