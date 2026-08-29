@@ -25,13 +25,13 @@ export const InfiniteCanvas: React.FC = () => {
   const isPanning = useRef(false);
   const lastPointerPos = useRef({ x: 0, y: 0 });
 
-  // Drag-to-draw state for shapes
-  const [drawingShapeStart, setDrawingShapeStart] = useState<{ x: number; y: number } | null>(null);
-  const [drawingShapeCurrent, setDrawingShapeCurrent] = useState<{ x: number; y: number } | null>(null);
-
   // Drag-to-draw state for clusters
   const [drawingClusterStart, setDrawingClusterStart] = useState<{ x: number; y: number } | null>(null);
   const [drawingClusterCurrent, setDrawingClusterCurrent] = useState<{ x: number; y: number } | null>(null);
+
+  // Drag-to-draw state for shapes
+  const [drawingShapeStart, setDrawingShapeStart] = useState<{ x: number; y: number } | null>(null);
+  const [drawingShapeCurrent, setDrawingShapeCurrent] = useState<{ x: number; y: number } | null>(null);
 
   // Marquee selection state
   const [marqueeStart, setMarqueeStart] = useState<{ x: number; y: number } | null>(null);
@@ -44,15 +44,15 @@ export const InfiniteCanvas: React.FC = () => {
     selectedIds, setSelectedIds, clearSelection,
     addCard, moveCard, bringToFront,
     addShape, moveShape, resizeShape, bringShapeToFront,
-    addCluster, moveCluster, resizeCluster, bringClusterToFront, setEditingClusterId,
+    addCluster, moveCluster, resizeCluster, bringClusterToFront,
     editingCardId, setEditingCardId,
     editingShapeId, setEditingShapeId,
+    setEditingClusterId,
     connectingFromId, setConnectingFromId,
     addConnector,
     setActiveTool,
   } = useBoardStore();
 
-  // Resize handler
   // Register stage ref globally for export
   useEffect(() => {
     if (stageRef.current) {
@@ -100,13 +100,14 @@ export const InfiniteCanvas: React.FC = () => {
     [viewport, setViewport]
   );
 
-  // ─── Stage mouse down (pan, place card, or start drawing shape) ───
+  // ─── Stage mouse down (pan, place card, or start drawing shape/cluster) ───
   const handleMouseDown = useCallback(
     (e: Konva.KonvaEventObject<MouseEvent>) => {
       const isBackgroundClick =
         e.target === e.currentTarget ||
         e.target.name() === 'background' ||
-        e.target.name() === 'dot';
+        e.target.name() === 'dot' ||
+        e.target.name() === 'cluster-bg';
 
       if (!isBackgroundClick) return;
 
@@ -125,15 +126,15 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
-      if (activeTool === 'shape') {
-        setDrawingShapeStart({ x: worldX, y: worldY });
-        setDrawingShapeCurrent({ x: worldX, y: worldY });
-        return;
-      }
-
       if (activeTool === 'cluster') {
         setDrawingClusterStart({ x: worldX, y: worldY });
         setDrawingClusterCurrent({ x: worldX, y: worldY });
+        return;
+      }
+
+      if (activeTool === 'shape') {
+        setDrawingShapeStart({ x: worldX, y: worldY });
+        setDrawingShapeCurrent({ x: worldX, y: worldY });
         return;
       }
 
@@ -159,13 +160,14 @@ export const InfiniteCanvas: React.FC = () => {
     [activeTool, viewport, addCard, clearSelection, connectingFromId, setConnectingFromId, setActiveTool]
   );
 
-  // ─── Stage double click (instant card creation on empty canvas) ────
+  // ─── Stage double click (instant card creation on canvas or inside cluster) ────
   const handleStageDblClick = useCallback(
     (e: Konva.KonvaEventObject<any>) => {
       const isBackgroundClick =
         e.target === e.currentTarget ||
         e.target.name() === 'background' ||
-        e.target.name() === 'dot';
+        e.target.name() === 'dot' ||
+        e.target.name() === 'cluster-bg';
 
       if (!isBackgroundClick) return;
 
@@ -198,7 +200,7 @@ export const InfiniteCanvas: React.FC = () => {
         return;
       }
 
-      // If drawing a cluster, update the current drag point
+      // If drawing a cluster, update current drag point
       if (drawingClusterStart) {
         const stage = stageRef.current;
         if (!stage) return;
@@ -293,15 +295,14 @@ export const InfiniteCanvas: React.FC = () => {
 
       let finalId = '';
       if (dragWidth < 15 && dragHeight < 15) {
-        // Single click: place default sized cluster centered at click
         const defaultW = 320;
         const defaultH = 220;
         finalId = addCluster(startX - defaultW / 2, startY - defaultH / 2, defaultW, defaultH);
       } else {
         const x = Math.min(startX, currentX);
         const y = Math.min(startY, currentY);
-        const width = Math.max(80, dragWidth);
-        const height = Math.max(60, dragHeight);
+        const width = Math.max(100, dragWidth);
+        const height = Math.max(80, dragHeight);
         finalId = addCluster(x, y, width, height);
       }
 
@@ -327,12 +328,10 @@ export const InfiniteCanvas: React.FC = () => {
 
       let finalId = '';
       if (dragWidth < 15 && dragHeight < 15) {
-        // Single click: place default sized shape centered at click
         const defaultW = shapeDef.defaultWidth;
         const defaultH = shapeDef.defaultHeight;
         finalId = addShape(activeShapeType, startX - defaultW / 2, startY - defaultH / 2, defaultW, defaultH);
       } else {
-        // Drag to size: place shape with calculated bounding box
         const x = Math.min(startX, currentX);
         const y = Math.min(startY, currentY);
         const width = Math.max(30, dragWidth);
@@ -753,4 +752,3 @@ export const InfiniteCanvas: React.FC = () => {
     </Stage>
   );
 };
-

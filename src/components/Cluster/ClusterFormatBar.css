@@ -1,114 +1,88 @@
 .cluster-format-bar {
-  position: absolute;
-  transform: translate(-50%, -100%);
+  position: fixed;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 2px;
-  background: #241d18;
-  border-radius: 8px;
-  padding: 4px 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2);
-  z-index: var(--z-floating-bar, 200);
+  gap: 6px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
   pointer-events: auto;
   user-select: none;
-  animation: clusterBarIn 0.15s cubic-bezier(0.2, 0.9, 0.3, 1);
-}
-
-@keyframes clusterBarIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -90%) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -100%) scale(1);
-  }
+  animation: fadeIn 0.15s ease-out;
 }
 
 .cluster-format-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  background: transparent;
+  padding: 6px 8px;
+  border-radius: 6px;
   border: none;
-  border-radius: 5px;
-  color: #f4ecd8;
+  background: transparent;
+  color: #55483d;
   cursor: pointer;
   transition: all 0.12s ease;
-  position: relative;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .cluster-format-btn:hover {
-  background: rgba(244, 236, 216, 0.15);
-  color: #ffffff;
+  background: #f3ece0;
+  color: #241d18;
 }
 
-.cluster-format-btn.active {
-  background: rgba(244, 236, 216, 0.25);
+.cluster-format-btn.primary {
+  background: #2d3748;
+  color: #f7fafc;
+  padding: 5px 10px;
+  gap: 5px;
+}
+
+.cluster-format-btn.primary:hover {
+  background: #1a202c;
+}
+
+.cluster-format-btn.danger {
+  color: #c0392b;
 }
 
 .cluster-format-btn.danger:hover {
-  background: rgba(192, 57, 43, 0.35);
-  color: #ff6b6b;
-}
-
-.cluster-dot-indicator {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  border: 1px solid #241d18;
+  background: #fde8e8;
 }
 
 .cluster-format-divider {
   width: 1px;
   height: 18px;
-  background: rgba(244, 236, 216, 0.2);
-  margin: 0 4px;
+  background: #e2d9cc;
+  margin: 0 2px;
 }
 
-.cluster-color-popover {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  background: #241d18;
-  border-radius: 8px;
-  padding: 8px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-  z-index: 205;
-  animation: clusterBarIn 0.15s ease;
-}
-
-.cluster-swatch-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  border: 1.5px solid transparent;
-  cursor: pointer;
+.cluster-format-colors {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: transform 0.12s;
+  gap: 4px;
+}
+
+.cluster-color-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
   padding: 0;
 }
 
-.cluster-swatch-btn:hover {
-  transform: scale(1.15);
+.cluster-color-btn:hover {
+  transform: scale(1.2);
 }
 
-.cluster-swatch-btn.selected {
-  border-color: #f4ecd8;
-}
-
-.cluster-swatch-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.cluster-color-btn.active {
+  border-color: #c0392b;
+  transform: scale(1.25);
 }

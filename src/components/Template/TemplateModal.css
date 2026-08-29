@@ -191,8 +191,39 @@
   background: #fbf7ee;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.template-modal-options {
+  display: flex;
+  align-items: center;
+}
+
+.template-keep-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a3e32;
+  cursor: pointer;
+  user-select: none;
+}
+
+.template-keep-option input[type="checkbox"] {
+  accent-color: #a3312b;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.template-modal-buttons {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  margin-left: auto;
 }
 
 .template-btn-cancel {
@@ -209,6 +240,24 @@
 
 .template-btn-cancel:hover {
   background: #e2d3bd;
+}
+
+.template-btn-replace {
+  background: #ffffff;
+  border: 1px solid #c0a892;
+  color: #6b4d3a;
+  padding: 8px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.template-btn-replace:hover {
+  background: #f5ede0;
+  color: #2b2420;
+  border-color: #8a6c52;
 }
 
 .template-btn-load {

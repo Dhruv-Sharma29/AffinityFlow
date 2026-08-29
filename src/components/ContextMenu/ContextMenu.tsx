@@ -4,7 +4,7 @@ import { CARD_COLORS, SHAPE_COLORS, CLUSTER_COLORS } from '../../types/board';
 import type { CardColor, ShapeColor, ShapeType, ClusterColor } from '../../types/board';
 import {
   IconEdit, IconTrash, IconCopy, IconLink, IconUnlink,
-  IconPalette, IconBringToFront, IconShape, IconGroup,
+  IconPalette, IconBringToFront, IconShape, IconGroup, IconStickyNote,
 } from '../Icons/Icons';
 import { getAllShapeDefinitions } from '../Shape/shapeRegistry';
 import './ContextMenu.css';
@@ -33,11 +33,12 @@ export const ContextMenu: React.FC = () => {
     cards, shapes, connectors, clusters,
     selectedIds, setSelectedIds,
     setEditingCardId, setEditingShapeId, setEditingClusterId,
-    deleteCard, deleteShape, deleteConnector, deleteCluster, deleteClusterWithContents,
+    deleteCard, deleteShape, deleteConnector,
+    openConfirmDeleteCluster,
     unlinkCard, ungroup, groupSelected, duplicateCluster,
     updateCard, updateShape, updateCluster,
     bringToFront, bringShapeToFront, bringClusterToFront,
-    addCard, addShape,
+    addCard, addShape, addCardToCluster,
     setActiveTool, setConnectingFromId,
   } = useBoardStore();
 
@@ -117,6 +118,11 @@ export const ContextMenu: React.FC = () => {
   if (targetCluster) {
     menuItems.push(
       {
+        label: 'Add Card to Group',
+        icon: <IconStickyNote size={15} />,
+        action: () => { addCardToCluster(targetId); close(); },
+      },
+      {
         label: 'Edit Group Label',
         icon: <IconEdit size={15} />,
         action: () => { setEditingClusterId(targetId); close(); },
@@ -147,14 +153,9 @@ export const ContextMenu: React.FC = () => {
         dividerAfter: true,
       },
       {
-        label: 'Delete Group Container',
+        label: 'Delete Group…',
         icon: <IconTrash size={15} />,
-        action: () => { deleteCluster(targetId); close(); },
-      },
-      {
-        label: 'Delete Group & All Contents',
-        icon: <IconTrash size={15} />,
-        action: () => { deleteClusterWithContents(targetId); close(); },
+        action: () => { openConfirmDeleteCluster(targetId); close(); },
         danger: true,
       },
     );
@@ -174,7 +175,7 @@ export const ContextMenu: React.FC = () => {
         label: 'Duplicate',
         icon: <IconCopy size={15} />,
         action: () => {
-          const id = addCard(targetCard.x + 30, targetCard.y + 30, targetCard.color);
+          const id = addCard(targetCard.x + 30, targetCard.y + 30, targetCard.color, targetCard.clusterId);
           const store = useBoardStore.getState();
           store.updateCard(id, {
             title: targetCard.title,
@@ -462,4 +463,3 @@ export const ContextMenu: React.FC = () => {
     </div>
   );
 };
-
