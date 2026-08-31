@@ -755,21 +755,6 @@ export const InfiniteCanvas: React.FC = () => {
         )}
       </Layer>
 
-      {/* Images layer */}
-      <Layer>
-        {sortedImages.map(image => (
-          <ImageNode
-            key={image.id}
-            image={image}
-            isSelected={selectedIds.includes(image.id)}
-            onSelect={handleImageSelect}
-            onDragStart={handleImageDragStart}
-            onDragEnd={moveImage}
-            onTransformEnd={handleImageTransformEnd}
-          />
-        ))}
-      </Layer>
-
       {/* Cards layer */}
       <Layer>
         {sortedCards.map(card => (
@@ -808,6 +793,21 @@ export const InfiniteCanvas: React.FC = () => {
             listening={false}
           />
         )}
+      </Layer>
+
+      {/* Images render above cards/content so selecting one brings it visibly forward. */}
+      <Layer>
+        {sortedImages.map(image => (
+          <ImageNode
+            key={image.id}
+            image={image}
+            isSelected={selectedIds.includes(image.id)}
+            onSelect={handleImageSelect}
+            onDragStart={handleImageDragStart}
+            onDragEnd={moveImage}
+            onTransformEnd={handleImageTransformEnd}
+          />
+        ))}
       </Layer>
 
       {/* Connectors layer (Yarn strings & mid-point annotation tags rendered on top) */}

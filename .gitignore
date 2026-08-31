@@ -38,5 +38,14 @@ coverage
 .cache
 .turbo
 
+# Supabase local development state
+supabase/.branches
+supabase/.temp
+
+# Deployment and tooling output
+.vercel
+.netlify
+.eslintcache
+
 # TypeScript build info
 *.tsbuildinfo
