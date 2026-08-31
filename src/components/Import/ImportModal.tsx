@@ -20,7 +20,6 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [fileError, setFileError] = useState('');
   const { importCards, importFromJSON, zoomToFit } = useBoardStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  if (!isOpen) return null;
   const reset = () => { setFormat(null); setParsed(null); setFilename(''); setFileError(''); };
   const close = () => { reset(); onClose(); };
   const chooseFormat = (next: ImportFormat | null) => { setFormat(next); setParsed(null); setFilename(''); setFileError(''); if (fileInputRef.current) fileInputRef.current.value = ''; };
@@ -32,6 +31,7 @@ export const ImportModal: React.FC<Props> = ({ isOpen, onClose }) => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
+  if (!isOpen) return null;
   const chooseFile = async (file?: File) => {
     if (!file || !format) return;
     setFilename(file.name);

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useBoardStore } from '../../store/boardStore';
 import type { ShapeType } from '../../types/board';
-import { IconBringToFront, IconCopy, IconTrash } from '../Icons/Icons';
+import { IconCopy, IconTrash } from '../Icons/Icons';
 import { getAllShapeDefinitions, getShapeDefinition } from '../Shape/shapeRegistry';
 import '../Shape/ShapeFormatBar.css';
 
 export const ImageFormatBar: React.FC = () => {
-  const { images, selectedIds, viewport, updateImage, deleteImage, addImage, bringImageToFront } = useBoardStore();
+  const { images, selectedIds, viewport, updateImage, deleteImage, addImage } = useBoardStore();
   const [showShapePicker, setShowShapePicker] = useState(false);
 
   if (selectedIds.length !== 1) return null;
@@ -35,7 +35,6 @@ export const ImageFormatBar: React.FC = () => {
       <button className={`shape-format-btn ${showShapePicker ? 'active' : ''}`} onClick={() => setShowShapePicker(open => !open)} title={`Change image shape (current: ${currentDefinition.label})`}>
         <CurrentIcon size={16} />
       </button>
-      <button className="shape-format-btn" onClick={() => bringImageToFront(selectedImage.id)} title="Bring image to front"><IconBringToFront size={16} /></button>
       <button className="shape-format-btn" onClick={handleDuplicate} title="Duplicate image"><IconCopy size={16} /></button>
       <div className="shape-format-divider" />
       <button className="shape-format-btn danger" onClick={() => deleteImage(selectedImage.id)} title="Delete image"><IconTrash size={16} /></button>
